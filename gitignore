@@ -1,0 +1,37 @@
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Secrets
+*.key
+*.pem
+*.secret
+
+# Logs
+logs/
+*.log
+
+# Backups
+backups/
+*.backup
+*.sql
+*.dump
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+.docker/
+
+# Don't ignore the example file
+!.env.example
