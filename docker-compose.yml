@@ -25,7 +25,10 @@ services:
     environment:
       # Database connection
       DATABASE_URL: postgresql://${DB_USER:-craftalism}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-craftalism}
-      
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-craftalism}
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-craftalism}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       # API configuration
       API_SECRET: ${API_SECRET}
       API_PORT: 8080
@@ -41,7 +44,7 @@ services:
       - craftalism
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 3
