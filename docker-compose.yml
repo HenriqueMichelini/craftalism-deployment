@@ -1,0 +1,127 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:18-alpine
+    container_name: craftalism-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-craftalism}
+      POSTGRES_USER: ${DB_USER:-craftalism}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - craftalism
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-craftalism}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Craftalism API
+  api:
+    image: ghcr.io/henriquemichelini/craftalism-api:${API_VERSION:-latest}
+    container_name: craftalism-api
+    environment:
+      # Database connection
+      DATABASE_URL: postgresql://${DB_USER:-craftalism}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-craftalism}
+      
+      # API configuration
+      API_SECRET: ${API_SECRET}
+      API_PORT: 8080
+      
+      # Environment
+      NODE_ENV: production
+    ports:
+      - "${API_PORT:-3000}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - craftalism
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Craftalism Dashboard
+  dashboard:
+    image: ghcr.io/henriquemichelini/craftalism-dashboard:${DASHBOARD_VERSION:-latest}
+    container_name: craftalism-dashboard
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+      VITE_API_TIMEOUT: ${VITE_API_TIMEOUT:-10000}
+    ports:
+      - "${DASHBOARD_PORT:-8080}:80"
+    depends_on:
+      - api
+    networks:
+      - craftalism
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Minecraft Server
+  minecraft:
+    image: itzg/minecraft-server:${MINECRAFT_IMAGE_VERSION:-latest}
+    container_name: craftalism-minecraft
+    environment:
+      EULA: "TRUE"
+      TYPE: ${MINECRAFT_TYPE:-PAPER}
+      VERSION: ${MINECRAFT_VERSION:-1.21.4}
+      
+      # Server configuration
+      MEMORY: ${MINECRAFT_MEMORY:-2G}
+      MAX_PLAYERS: ${MINECRAFT_MAX_PLAYERS:-20}
+      DIFFICULTY: ${MINECRAFT_DIFFICULTY:-normal}
+      MODE: ${MINECRAFT_MODE:-survival}
+      MOTD: ${MINECRAFT_MOTD:-Craftalism Economy Server}
+      
+      # Online mode and authentication
+      ONLINE_MODE: ${MINECRAFT_ONLINE_MODE:-TRUE}
+      
+      # Server optimizations
+      VIEW_DISTANCE: ${MINECRAFT_VIEW_DISTANCE:-10}
+      SIMULATION_DISTANCE: ${MINECRAFT_SIMULATION_DISTANCE:-10}
+      
+      # Enable RCON for management
+      ENABLE_RCON: "TRUE"
+      RCON_PASSWORD: ${RCON_PASSWORD}
+      RCON_PORT: 25575
+      
+      # Craftalism API connection (for economy plugin)
+      CRAFTALISM_API_URL: http://api:8080
+      CRAFTALISM_API_KEY: ${API_SECRET}
+    volumes:
+      # Persistent world data and plugins
+      - minecraft_data:/data
+      
+      # Plugin will be manually placed here initially
+      # Updates can be automated later (Phase 6.3)
+    ports:
+      - "${MINECRAFT_PORT:-25565}:25565"
+      - "25575:25575"  # RCON
+    networks:
+      - craftalism
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+volumes:
+  postgres_data:
+    driver: local
+  minecraft_data:
+    driver: local
+
+networks:
+  craftalism:
+    driver: bridge
