@@ -26,10 +26,10 @@ services:
     restart: "no"
     environment:
       PGPASSWORD: ${DB_PASSWORD}
-      command:
-        - sh
-        - -c
-        - 'psql -h postgres -U "$DB_USER" -d postgres -tc "SELECT 1 FROM pg_database WHERE datname=''authserver''" | grep -q 1 || psql -h postgres -U "$DB_USER" -d postgres -c "CREATE DATABASE authserver;"'
+    command:
+      - sh
+      - -c
+      - 'psql -h postgres -U "$DB_USER" -d postgres -tc "SELECT 1 FROM pg_database WHERE datname=''authserver''" | grep -q 1 || psql -h postgres -U "$DB_USER" -d postgres -c "CREATE DATABASE authserver;"'
     depends_on:
       postgres:
         condition: service_healthy
