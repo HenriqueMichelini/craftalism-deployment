@@ -153,6 +153,8 @@ services:
       RCON_PORT: 25575
       CRAFTALISM_API_URL: http://craftalism-api:8080
       CRAFTALISM_API_KEY: ${MINECRAFT_CLIENT_SECRET}
+      PLUGINS: >-
+        https://github.com/HenriqueMichelini/craftalism-economy/releases/download/v${ECONOMY_VERSION}/craftalism-economy-${ECONOMY_VERSION}.jar
     volumes:
       - minecraft_data:/data
     ports:
