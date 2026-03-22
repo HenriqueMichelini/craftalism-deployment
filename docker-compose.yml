@@ -25,6 +25,7 @@ services:
     image: postgres:18-alpine
     restart: "no"
     environment:
+      DB_USER: ${DB_USER:-craftalism}
       PGPASSWORD: ${DB_PASSWORD}
     command:
       - sh
@@ -144,7 +145,7 @@ services:
       DIFFICULTY: ${MINECRAFT_DIFFICULTY:-normal}
       MODE: ${MINECRAFT_MODE:-survival}
       MOTD: ${MINECRAFT_MOTD:-Craftalism Economy Server}
-      ONLINE_MODE: ${MINECRAFT_ONLINE_MODE:-TRUE}
+      ONLINE_MODE: ${MINECRAFT_ONLINE_MODE:-FALSE}
       VIEW_DISTANCE: ${MINECRAFT_VIEW_DISTANCE:-10}
       SIMULATION_DISTANCE: ${MINECRAFT_SIMULATION_DISTANCE:-10}
       ENABLE_RCON: "TRUE"
