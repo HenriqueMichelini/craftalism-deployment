@@ -2,6 +2,7 @@
 .env
 .env.local
 .env.*.local
+!.env.example
 
 # Secrets
 *.key
@@ -32,9 +33,5 @@ temp/
 
 # Docker
 .docker/
-
-# Don't ignore the example file
-!.env.example
-.env
 
 *.jar
