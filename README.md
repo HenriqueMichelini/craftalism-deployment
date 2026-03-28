@@ -1,68 +1,65 @@
 # Craftalism Deployment
 
-Docker Compose deployment for the **Craftalism economy platform**, including:
-
-- PostgreSQL for persistent storage
-- Craftalism Authorization Server (OAuth2/JWT issuer)
-- Craftalism API (Spring Boot)
-- Craftalism Dashboard (frontend)
-- Minecraft server (Paper/itzg image) with the Craftalism economy plugin auto-downloaded
-
-This repository is focused on **runtime orchestration and environment configuration** (not application source code).
+> Docker Compose orchestration for the full Craftalism economy platform: database, authorization server, backend API, frontend dashboard, and Minecraft game server.
 
 ---
 
-## What this project does
+## Overview
 
-This repo provides a production-oriented container stack that connects a Minecraft economy server to a web/API backend:
+This repository contains the runtime orchestration and environment configuration for the Craftalism stack. It does not contain application source code; all services are pulled from pre-built container images.
 
-1. Players interact with the Minecraft server.
-2. The Minecraft plugin communicates with the Craftalism API.
-3. The API uses PostgreSQL and trusts tokens issued by the Authorization Server.
-4. The Dashboard is exposed to users/admins and communicates with the API.
+**Key capabilities:**
+
+- Single `docker compose up` brings up the complete platform.
+- PostgreSQL provides shared persistent storage for the API and Authorization Server.
+- The Minecraft plugin is downloaded automatically from GitHub Releases at container startup using the configured `ECONOMY_VERSION`.
+- All inter-service communication happens on an isolated Docker network.
 
 ---
 
-## Architecture (actual from `docker-compose.yml`)
+## Architecture
 
 ```text
-┌──────────────────────────────────────────────────────────────────────┐
-│                           Craftalism Stack                           │
-├──────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  Dashboard (:8080->80) ───────▶ API (:3000->8080)                   │
-│                                  │                                   │
-│                                  ▼                                   │
-│                             PostgreSQL (:5432 internal)              │
-│                                  ▲                                   │
-│                                  │                                   │
-│                 Auth Server (:9000->9000) ─────▶ JWT/OIDC issuer     │
-│                                                                      │
-│  Minecraft (:25565, :25575) ────▶ API + Auth Server                 │
-│                                                                      │
-└──────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                      Craftalism Stack                        │
+│                                                             │
+│  Dashboard (:8080 → :80) ──────▶ API (:3000 → :8080)       │
+│                                         │                   │
+│                                         ▼                   │
+│                                    PostgreSQL               │
+│                                    (internal)               │
+│                                         ▲                   │
+│                                         │                   │
+│              Auth Server (:9000) ───────┘                   │
+│                    ▲                                        │
+│                    │                                        │
+│  Minecraft (:25565, :25575) ──────▶ API + Auth Server       │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ### Services
 
-| Service | Container | Image | Purpose |
-|---|---|---|---|
-| PostgreSQL | `craftalism-postgres` | `postgres:18-alpine` | Primary database |
-| Auth DB Init | ephemeral | `postgres:18-alpine` | One-shot init that creates `authserver` DB |
-| Authorization Server | `craftalism-auth-server` | `ghcr.io/henriquemichelini/craftalism-authorization-server` | Token issuer / auth |
-| API | `craftalism-api` | `ghcr.io/henriquemichelini/craftalism-api` | Core backend |
-| Dashboard | `craftalism-dashboard` | `ghcr.io/henriquemichelini/craftalism-dashboard` | Web UI |
-| Minecraft | `craftalism-minecraft` | `itzg/minecraft-server` | Game server + plugin runtime |
+| Container | Image | Purpose |
+|---|---|---|
+| `craftalism-postgres` | `postgres:18-alpine` | Primary database for API and Auth Server. |
+| `auth-db-init` | `postgres:18-alpine` | One-shot container that creates the `authserver` database before the app starts. |
+| `craftalism-auth-server` | `ghcr.io/henriquemichelini/craftalism-authorization-server` | OAuth2/JWT token issuer. |
+| `craftalism-api` | `ghcr.io/henriquemichelini/craftalism-api` | Core economy REST API. |
+| `craftalism-dashboard` | `ghcr.io/henriquemichelini/craftalism-dashboard` | Admin web UI. |
+| `craftalism-minecraft` | `itzg/minecraft-server` | Paper Minecraft server with the economy plugin. |
 
 ---
 
-## Tech stack
+## Tech Stack
 
-- **Orchestration:** Docker Compose
-- **Database:** PostgreSQL 18 (alpine)
-- **Backend runtime:** Java/Spring Boot containers (API + Auth)
-- **Frontend runtime:** Dashboard container (served on port 80 inside container)
-- **Game server:** Paper-compatible Minecraft server via `itzg/minecraft-server`
+| Category | Technology |
+|---|---|
+| Orchestration | Docker Compose |
+| Database | PostgreSQL 18 (alpine) |
+| Backend runtime | Java / Spring Boot (via pre-built images) |
+| Frontend runtime | Nginx (via pre-built dashboard image) |
+| Game server | Paper via `itzg/minecraft-server` |
 
 ---
 
@@ -70,152 +67,172 @@ This repo provides a production-oriented container stack that connects a Minecra
 
 - Docker Engine 20.10+
 - Docker Compose v2+
-- Recommended host resources: 4+ GB RAM, 20+ GB disk
-- Open host ports as needed:
-  - `8080` Dashboard
-  - `3000` API
-  - `9000` Auth Server
-  - `25565` Minecraft
-  - `25575` RCON
+- Host resources: 4+ GB RAM, 20+ GB disk recommended
 
 ---
 
 ## Configuration
 
-1. Copy environment template:
+### 1. Copy the environment template
 
 ```bash
 cp env.example .env
 ```
 
-2. Update required values in `.env`:
+### 2. Set required values in `.env`
 
-- `DB_PASSWORD`
-- `MINECRAFT_CLIENT_SECRET`
-- `RSA_PRIVATE_KEY`
-- `RSA_PUBLIC_KEY`
-- `AUTH_ISSUER_URI` (must match your externally reachable auth URL)
-- Optional tuning: `ECONOMY_VERSION`, Minecraft settings, exposed ports
+| Variable | Default | Description |
+|---|---|---|
+| `DB_PASSWORD` | — | **Required.** PostgreSQL password for the `craftalism` user. |
+| `MINECRAFT_CLIENT_SECRET` | — | **Required.** OAuth2 client secret for the Minecraft plugin. |
+| `RSA_PRIVATE_KEY` | — | **Required.** PEM-encoded RSA private key with literal `\n` separators. |
+| `RSA_PUBLIC_KEY` | — | **Required.** PEM-encoded RSA public key with literal `\n` separators. |
+| `AUTH_ISSUER_URI` | — | **Required.** Externally reachable URL of the Authorization Server. Must be consistent across all services. |
+| `ECONOMY_VERSION` | — | GitHub Release tag of the economy plugin JAR to download at Minecraft container startup. |
 
-### Generate secrets
+### 3. Generate secrets
 
 ```bash
-# DB password / client secret examples
+# Generate a random DB password or client secret
 openssl rand -base64 32
 ```
 
-### Generate RSA keys
+### 4. Generate RSA keys
 
-`env.example` references `./generate-keys.sh`, but that script is not present in this repository. Generate keys with OpenSSL and place them in `.env` with literal `\n` separators:
+> **Note:** A `generate-keys.sh` script is referenced in `env.example` but is not present in this repository. Generate keys manually with OpenSSL and place them in `.env` using literal `\n` as the line separator.
 
 ```bash
-# Private key (PKCS#8)
+# Generate private key (PKCS#8 format)
 openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out private.pem
 
-# Public key
+# Derive public key
 openssl rsa -pubout -in private.pem -out public.pem
 
-# Convert to single-line env-safe values with literal \n
-awk '{printf "%s\\n", $0}' private.pem
-awk '{printf "%s\\n", $0}' public.pem
+# Convert to single-line env-safe format (literal \n)
+awk '{printf "%s\\n", $0}' private.pem   # → RSA_PRIVATE_KEY value
+awk '{printf "%s\\n", $0}' public.pem    # → RSA_PUBLIC_KEY value
 ```
 
 ---
 
-## Run
+## Running with Docker
 
 ```bash
-# Pull images
+# Pull all images
 docker compose pull
 
-# Start stack
+# Start the stack
 docker compose up -d
 
-# See status
+# Check service status
 docker compose ps
 
-# Follow logs
+# Follow all logs
 docker compose logs -f
 ```
 
+| Service | Host Port | URL |
+|---|---|---|
+| Dashboard | 8080 | `http://localhost:8080` |
+| API | 3000 | `http://localhost:3000` |
+| Authorization Server | 9000 | `http://localhost:9000` |
+| Minecraft | 25565 | `localhost:25565` |
+| RCON | 25575 | `localhost:25575` |
+
 ---
 
-## Health and verification
+## API Reference
+
+### Health checks
 
 ```bash
 # API
 curl -f http://localhost:3000/actuator/health
 
-# Auth Server
+# Authorization Server
 curl -f http://localhost:9000/actuator/health
 
 # Dashboard
 curl -I http://localhost:8080/
 ```
 
-Minecraft server should be reachable at `localhost:25565`.
+All three should return HTTP 200 before considering the stack healthy.
 
 ---
 
-## Common operations
+## Testing
 
-### Stop
+This repository does not include automated tests. Verification is done via the health checks above after `docker compose up`.
+
+---
+
+## Project Structure
+
+```text
+.
+├── docker-compose.yml    # Full multi-service deployment topology
+├── env.example           # Environment variable template
+├── README.md
+└── LICENSE
+```
+
+---
+
+## Common Operations
+
+### Stop the stack
 
 ```bash
 docker compose down
 ```
 
-### Restart one service
+### Restart a single service
 
 ```bash
 docker compose restart api
 ```
 
-### Update images
+### Update to latest images
 
 ```bash
 docker compose pull
 docker compose up -d
 ```
 
-### Backup database
+### Back up the database
 
 ```bash
-docker exec craftalism-postgres pg_dump -U craftalism craftalism > backup-$(date +%Y%m%d).sql
+docker exec craftalism-postgres \
+  pg_dump -U craftalism craftalism > backup-$(date +%Y%m%d).sql
 ```
 
-### Restore database
+### Restore the database
 
 ```bash
-docker exec -i craftalism-postgres psql -U craftalism craftalism < backup-YYYYMMDD.sql
+docker exec -i craftalism-postgres \
+  psql -U craftalism craftalism < backup-YYYYMMDD.sql
 ```
 
 ---
 
-## Folder structure
+## Known Limitations
 
-```text
-.
-├── docker-compose.yml       # Full multi-service deployment topology
-├── env.example              # Environment variable template
-├── DEPLOYMENT_README.md     # Legacy deployment notes
-├── README.md                # Main project documentation (this file)
-└── LICENSE
-```
+- Image tags in `docker-compose.yml` use `latest`; this means updates are not pinned or reproducible across environments.
+- `AUTH_ISSUER_URI` must be reachable by all services at runtime. An incorrect or unreachable issuer URI will cause token validation failures across the API and Minecraft plugin.
+- No reverse proxy or TLS termination is configured; all services are exposed directly on host ports.
+- No `generate-keys.sh` script is present despite being referenced in `env.example`.
 
 ---
 
-## Known limitations / notes
+## Roadmap
 
-- This repository contains deployment definitions only; application source code lives in separate repositories/images.
-- The Minecraft plugin is downloaded dynamically from GitHub Releases using `ECONOMY_VERSION`.
-- `AUTH_ISSUER_URI` and the token issuer used by dependent services must be consistent in real deployments.
+- Pin image tags to specific versions for reproducible deployments.
+- Add a `generate-keys.sh` script for RSA key generation.
+- Add an example reverse proxy configuration with TLS (Nginx, Caddy, or Traefik).
+- Add automated backup and restore scripts with scheduling guidance.
 
 ---
 
-## Future improvements
+## License
 
-- Add `generate-keys.sh` script referenced by `env.example`.
-- Add pinned image tags (instead of `latest`) for repeatable deployments.
-- Add example reverse-proxy/TLS setup (Nginx/Caddy/Traefik).
-- Add automated backup/restore scripts and runbooks.
+MIT. See [`LICENSE`](./LICENSE) for details.
