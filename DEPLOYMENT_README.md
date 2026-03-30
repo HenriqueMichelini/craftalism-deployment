@@ -123,6 +123,17 @@ open http://localhost:8080
 # Use Minecraft client to connect to: localhost:25565
 ```
 
+## Test Mode (main branch images)
+
+Use the Compose override file to run app services from `main` image tags:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.test.yml pull
+docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
+```
+
+Default `docker compose up -d` remains production-oriented and uses version tags configured in `.env`.
+
 ## Service Management
 
 ### Start Services
