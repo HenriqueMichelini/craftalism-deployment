@@ -133,31 +133,29 @@ docker compose ps
 docker compose logs -f
 ```
 
-### Test mode (build from repo branches)
+### Test mode (mutable test images)
 
 ```bash
-# Build app services from GitHub repos (default branches: main)
-docker compose -f docker-compose.yml -f docker-compose.test.yml build --pull
+# Pull and run test images (default test tags: latest)
+docker compose -f docker-compose.yml -f docker-compose.test.yml pull
 docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
 ```
 
-`docker-compose.test.yml` overrides app services (`auth-server`, `api`, `dashboard`) to build directly from their GitHub repositories using branch refs (default: `main`). This means test mode can pick up new commits without publishing new image tags.
+`docker-compose.test.yml` only overrides app images (`auth-server`, `api`, `dashboard`) to test tags (`latest` by default), keeping production configuration isolated and unchanged.
 
-You can change test branches in `.env`:
+If your registry publishes a `main` tag, you can opt in explicitly:
 
 ```bash
-AUTH_SERVER_TEST_BRANCH=main
-API_TEST_BRANCH=main
-DASHBOARD_TEST_BRANCH=main
+AUTH_SERVER_TEST_VERSION=main API_TEST_VERSION=main DASHBOARD_TEST_VERSION=main \
+  docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
 ```
-
 Optional helper script:
 
 ```bash
-./start.sh prod # production images from pinned tags
-./start.sh test # build from repo branches (default: main)
+./start.sh prod      # production pins from .env
+./start.sh test      # mutable test tags (latest by default)
+./start.sh test-main # force main tags (only if registry publishes them)
 ```
-
 
 | Service | Host Port | URL |
 |---|---|---|
@@ -245,7 +243,7 @@ docker exec -i craftalism-postgres \
 
 ## Known Limitations
 
-- Production reproducibility depends on pinning `AUTH_SERVER_VERSION`, `API_VERSION`, and `DASHBOARD_VERSION` in `.env`. Test mode intentionally bypasses registry tags for app services by building from repository branches (default: `main`).
+- Production reproducibility depends on pinning `AUTH_SERVER_VERSION`, `API_VERSION`, and `DASHBOARD_VERSION` in `.env`. Test mode intentionally overrides them to mutable test tags (`latest` by default).
 - `AUTH_ISSUER_URI` must be reachable by all services at runtime. An incorrect or unreachable issuer URI will cause token validation failures across the API and Minecraft plugin.
 - No reverse proxy or TLS termination is configured; all services are exposed directly on host ports.
 - No `generate-keys.sh` script is present despite being referenced in `env.example`.
