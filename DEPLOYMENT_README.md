@@ -123,6 +123,19 @@ open http://localhost:8080
 # Use Minecraft client to connect to: localhost:25565
 ```
 
+## Test Mode (mutable test images)
+
+Use the Compose override file to run app services from mutable test tags (`latest` by default):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.test.yml pull
+docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
+```
+
+Default `docker compose up -d` remains production-oriented and uses version tags configured in `.env`.
+
+If your registry exposes `main` tags, you can opt in by setting `AUTH_SERVER_TEST_VERSION=main`, `API_TEST_VERSION=main`, and `DASHBOARD_TEST_VERSION=main`.
+
 ## Service Management
 
 ### Start Services

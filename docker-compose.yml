@@ -1,4 +1,6 @@
 services:
+  # Default (production) behavior: image tags come from VERSION env vars.
+  # Pin these in .env (e.g., API_VERSION=v1.2.3) for reproducible production deploys.
   # ── PostgreSQL Database ────────────────────────────────────────────────────
   postgres:
     image: postgres:18-alpine
