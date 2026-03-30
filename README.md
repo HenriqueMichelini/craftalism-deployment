@@ -137,8 +137,9 @@ docker compose logs -f
 
 ```bash
 # Pull and run test images (default test tags: latest)
-docker compose -f docker-compose.yml -f docker-compose.test.yml pull
+docker compose -f docker-compose.yml -f docker-compose.test.yml pull auth-server api dashboard
 docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
+docker compose -f docker-compose.yml -f docker-compose.test.yml up -d --no-deps --force-recreate auth-server api dashboard
 ```
 
 `docker-compose.test.yml` only overrides app images (`auth-server`, `api`, `dashboard`) to test tags (`latest` by default), keeping production configuration isolated and unchanged.
@@ -147,7 +148,11 @@ If your registry publishes a `main` tag, you can opt in explicitly:
 
 ```bash
 AUTH_SERVER_TEST_VERSION=main API_TEST_VERSION=main DASHBOARD_TEST_VERSION=main \
+  docker compose -f docker-compose.yml -f docker-compose.test.yml pull auth-server api dashboard
+AUTH_SERVER_TEST_VERSION=main API_TEST_VERSION=main DASHBOARD_TEST_VERSION=main \
   docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
+AUTH_SERVER_TEST_VERSION=main API_TEST_VERSION=main DASHBOARD_TEST_VERSION=main \
+  docker compose -f docker-compose.yml -f docker-compose.test.yml up -d --no-deps --force-recreate auth-server api dashboard
 ```
 Optional helper script:
 
@@ -218,11 +223,19 @@ docker compose down
 docker compose restart api
 ```
 
-### Update to latest images
+### Update to latest images (production pins)
 
 ```bash
 docker compose pull
 docker compose up -d
+```
+
+### Refresh mutable test tags
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.test.yml pull auth-server api dashboard
+docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
+docker compose -f docker-compose.yml -f docker-compose.test.yml up -d --no-deps --force-recreate auth-server api dashboard
 ```
 
 ### Back up the database
