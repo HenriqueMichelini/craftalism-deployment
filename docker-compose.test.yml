@@ -1,0 +1,21 @@
+services:
+  # Test mode builds app services directly from GitHub repos (main branch)
+  # instead of using pre-tagged registry images.
+
+  auth-server:
+    image: craftalism-auth-server:test
+    pull_policy: build
+    build:
+      context: https://github.com/HenriqueMichelini/craftalism-authorization-server.git#${AUTH_SERVER_TEST_BRANCH:-main}
+
+  api:
+    image: craftalism-api:test
+    pull_policy: build
+    build:
+      context: https://github.com/HenriqueMichelini/craftalism-api.git#${API_TEST_BRANCH:-main}
+
+  dashboard:
+    image: craftalism-dashboard:test
+    pull_policy: build
+    build:
+      context: https://github.com/HenriqueMichelini/craftalism-dashboard.git#${DASHBOARD_TEST_BRANCH:-main}

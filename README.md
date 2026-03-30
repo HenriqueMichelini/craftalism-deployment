@@ -117,8 +117,10 @@ awk '{printf "%s\\n", $0}' public.pem    # → RSA_PUBLIC_KEY value
 
 ## Running with Docker
 
+### Production mode (default)
+
 ```bash
-# Pull all images
+# Pull images pinned by VERSION variables from .env
 docker compose pull
 
 # Start the stack
@@ -130,6 +132,32 @@ docker compose ps
 # Follow all logs
 docker compose logs -f
 ```
+
+### Test mode (build from repo branches)
+
+```bash
+# Build app services from GitHub repos (default branches: main)
+docker compose -f docker-compose.yml -f docker-compose.test.yml build --pull
+docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
+```
+
+`docker-compose.test.yml` overrides app services (`auth-server`, `api`, `dashboard`) to build directly from their GitHub repositories using branch refs (default: `main`). This means test mode can pick up new commits without publishing new image tags.
+
+You can change test branches in `.env`:
+
+```bash
+AUTH_SERVER_TEST_BRANCH=main
+API_TEST_BRANCH=main
+DASHBOARD_TEST_BRANCH=main
+```
+
+Optional helper script:
+
+```bash
+./start.sh prod # production images from pinned tags
+./start.sh test # build from repo branches (default: main)
+```
+
 
 | Service | Host Port | URL |
 |---|---|---|
@@ -217,7 +245,7 @@ docker exec -i craftalism-postgres \
 
 ## Known Limitations
 
-- Image tags in `docker-compose.yml` use `latest`; this means updates are not pinned or reproducible across environments.
+- Production reproducibility depends on pinning `AUTH_SERVER_VERSION`, `API_VERSION`, and `DASHBOARD_VERSION` in `.env`. Test mode intentionally bypasses registry tags for app services by building from repository branches (default: `main`).
 - `AUTH_ISSUER_URI` must be reachable by all services at runtime. An incorrect or unreachable issuer URI will cause token validation failures across the API and Minecraft plugin.
 - No reverse proxy or TLS termination is configured; all services are exposed directly on host ports.
 - No `generate-keys.sh` script is present despite being referenced in `env.example`.

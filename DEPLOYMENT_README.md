@@ -123,6 +123,19 @@ open http://localhost:8080
 # Use Minecraft client to connect to: localhost:25565
 ```
 
+## Test Mode (build from repo branches)
+
+Use the Compose override file to run app services built directly from repository branches (`main` by default):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.test.yml build --pull
+docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
+```
+
+Default `docker compose up -d` remains production-oriented and uses version tags configured in `.env`.
+
+Change test branches via `.env` if needed: `AUTH_SERVER_TEST_BRANCH`, `API_TEST_BRANCH`, and `DASHBOARD_TEST_BRANCH`.
+
 ## Service Management
 
 ### Start Services
