@@ -1,0 +1,13 @@
+services:
+  # Test mode: track the latest images built from the main branch.
+  # Use together with docker-compose.yml:
+  # docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
+
+  auth-server:
+    image: ghcr.io/henriquemichelini/craftalism-authorization-server:main
+
+  api:
+    image: ghcr.io/henriquemichelini/craftalism-api:main
+
+  dashboard:
+    image: ghcr.io/henriquemichelini/craftalism-dashboard:main
