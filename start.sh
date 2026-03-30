@@ -11,15 +11,18 @@ case "$MODE" in
     ;;
   test)
     echo "🧪 Test mode (mutable test tags)"
-    docker compose -f docker-compose.yml -f docker-compose.test.yml pull
+    docker compose -f docker-compose.yml -f docker-compose.test.yml pull auth-server api dashboard
     docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
+    docker compose -f docker-compose.yml -f docker-compose.test.yml up -d --no-deps --force-recreate auth-server api dashboard
     ;;
   test-main)
     echo "🧪 Test mode (explicit main tags)"
     AUTH_SERVER_TEST_VERSION=main API_TEST_VERSION=main DASHBOARD_TEST_VERSION=main \
-      docker compose -f docker-compose.yml -f docker-compose.test.yml pull
+      docker compose -f docker-compose.yml -f docker-compose.test.yml pull auth-server api dashboard
     AUTH_SERVER_TEST_VERSION=main API_TEST_VERSION=main DASHBOARD_TEST_VERSION=main \
       docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
+    AUTH_SERVER_TEST_VERSION=main API_TEST_VERSION=main DASHBOARD_TEST_VERSION=main \
+      docker compose -f docker-compose.yml -f docker-compose.test.yml up -d --no-deps --force-recreate auth-server api dashboard
     ;;
   *)
     echo "❌ Invalid mode: $MODE"
