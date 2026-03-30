@@ -1,13 +1,12 @@
 services:
-  # Test mode: track the latest images built from the main branch.
-  # Use together with docker-compose.yml:
-  # docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
+  # Test mode: use mutable tags (latest/dev) instead of production pins.
+  # You can override each test tag via env vars below.
 
   auth-server:
-    image: ghcr.io/henriquemichelini/craftalism-authorization-server:main
+    image: ghcr.io/henriquemichelini/craftalism-authorization-server:${AUTH_SERVER_TEST_VERSION:-latest}
 
   api:
-    image: ghcr.io/henriquemichelini/craftalism-api:main
+    image: ghcr.io/henriquemichelini/craftalism-api:${API_TEST_VERSION:-latest}
 
   dashboard:
-    image: ghcr.io/henriquemichelini/craftalism-dashboard:main
+    image: ghcr.io/henriquemichelini/craftalism-dashboard:${DASHBOARD_TEST_VERSION:-latest}
