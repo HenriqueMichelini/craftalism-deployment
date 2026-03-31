@@ -3,6 +3,21 @@ set -euo pipefail
 
 MODE="${1:-prod}"
 
+pull_with_fallback_tag() {
+  local image="$1"
+  local preferred_tag="$2"
+  local fallback_tag="$3"
+
+  if docker pull "${image}:${preferred_tag}" >/dev/null; then
+    echo "$preferred_tag"
+    return 0
+  fi
+
+  echo "⚠️  ${image}:${preferred_tag} not found, falling back to ${fallback_tag}" >&2
+  docker pull "${image}:${fallback_tag}" >/dev/null
+  echo "$fallback_tag"
+}
+
 case "$MODE" in
   prod)
     echo "🚀 Production mode (pinned tags from .env)"

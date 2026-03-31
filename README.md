@@ -159,7 +159,7 @@ Optional helper script:
 ```bash
 ./start.sh prod      # production pins from .env
 ./start.sh test      # mutable test tags (latest by default)
-./start.sh test-main # force main tags (only if registry publishes them)
+./start.sh test-main # prefer main tags, fallback to latest per app service
 ```
 
 | Service | Host Port | URL |
