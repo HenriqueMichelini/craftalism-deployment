@@ -133,35 +133,6 @@ docker compose ps
 docker compose logs -f
 ```
 
-### Test mode (mutable test images)
-
-```bash
-# Pull and run test images (default test tags: latest)
-docker compose -f docker-compose.yml -f docker-compose.test.yml pull auth-server api dashboard
-docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
-docker compose -f docker-compose.yml -f docker-compose.test.yml up -d --no-deps --force-recreate auth-server api dashboard
-```
-
-`docker-compose.test.yml` only overrides app images (`auth-server`, `api`, `dashboard`) to test tags (`latest` by default), keeping production configuration isolated and unchanged.
-
-You can also prefer `main` tags. The helper script handles missing `main` tags per service by falling back to `latest` so startup does not fail with `manifest unknown`.
-
-```bash
-AUTH_SERVER_TEST_VERSION=main API_TEST_VERSION=main DASHBOARD_TEST_VERSION=main \
-  docker compose -f docker-compose.yml -f docker-compose.test.yml pull auth-server api dashboard
-AUTH_SERVER_TEST_VERSION=main API_TEST_VERSION=main DASHBOARD_TEST_VERSION=main \
-  docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
-AUTH_SERVER_TEST_VERSION=main API_TEST_VERSION=main DASHBOARD_TEST_VERSION=main \
-  docker compose -f docker-compose.yml -f docker-compose.test.yml up -d --no-deps --force-recreate auth-server api dashboard
-```
-Optional helper script:
-
-```bash
-./start.sh prod      # production pins from .env
-./start.sh test      # mutable test tags (latest by default)
-./start.sh test-main # prefer main tags, fallback to latest per app service
-```
-
 | Service | Host Port | URL |
 |---|---|---|
 | Dashboard | 8080 | `http://localhost:8080` |
