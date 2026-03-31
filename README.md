@@ -39,19 +39,6 @@ Set required secrets (`DB_PASSWORD`, `MINECRAFT_CLIENT_SECRET`, `RSA_PRIVATE_KEY
 
 Use local build contexts for Java/UI services and a locally built Minecraft economy plugin jar.
 
-### Bootstrap local dependencies (optional but recommended)
-
-If you only cloned `craftalism-deployment`, run:
-
-```bash
-scripts/bootstrap-local-dev.sh
-```
-
-This script will:
-- clone missing sibling repositories (`craftalism-api`, `craftalism-authorization-server`, `craftalism-dashboard`, `craftalism-economy`)
-- fast-forward existing clones when possible
-- build `.local-dev/craftalism-economy.jar`
-
 ### Build the economy plugin locally
 
 ```bash
