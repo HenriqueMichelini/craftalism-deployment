@@ -57,10 +57,8 @@ build_economy_plugin() {
 
   echo "==> Building economy plugin from ${repo_dir}"
 
-  if [[ -f "${repo_dir}/gradlew" ]]; then
-    # Some environments lose execute bits during checkout; fix it opportunistically.
-    chmod +x "${repo_dir}/gradlew" || true
-    docker run --rm -v "${repo_dir}:/workspace" -w /workspace gradle:8.7.0-jdk21 sh ./gradlew --no-daemon clean build -x test
+  if [[ -x "${repo_dir}/gradlew" ]]; then
+    docker run --rm -v "${repo_dir}:/workspace" -w /workspace gradle:8.7.0-jdk21 ./gradlew --no-daemon clean build -x test
     output_jar="$(find "${repo_dir}/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-javadoc.jar' ! -name '*-plain.jar' | head -n 1)"
   elif [[ -f "${repo_dir}/pom.xml" ]]; then
     docker run --rm -v "${repo_dir}:/workspace" -w /workspace maven:3.9.11-eclipse-temurin-21 mvn -DskipTests clean package
