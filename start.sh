@@ -31,15 +31,12 @@ case "$MODE" in
     docker compose -f docker-compose.yml -f docker-compose.test.yml up -d --no-deps --force-recreate auth-server api dashboard
     ;;
   test-main)
-    echo "🧪 Test mode (prefer main tags, fallback to latest when missing)"
-
-    AUTH_SERVER_TEST_VERSION="$(pull_with_fallback_tag ghcr.io/henriquemichelini/craftalism-authorization-server main latest)"
-    API_TEST_VERSION="$(pull_with_fallback_tag ghcr.io/henriquemichelini/craftalism-api main latest)"
-    DASHBOARD_TEST_VERSION="$(pull_with_fallback_tag ghcr.io/henriquemichelini/craftalism-dashboard main latest)"
-
-    AUTH_SERVER_TEST_VERSION="$AUTH_SERVER_TEST_VERSION" API_TEST_VERSION="$API_TEST_VERSION" DASHBOARD_TEST_VERSION="$DASHBOARD_TEST_VERSION" \
+    echo "🧪 Test mode (explicit main tags)"
+    AUTH_SERVER_TEST_VERSION=main API_TEST_VERSION=main DASHBOARD_TEST_VERSION=main \
+      docker compose -f docker-compose.yml -f docker-compose.test.yml pull auth-server api dashboard
+    AUTH_SERVER_TEST_VERSION=main API_TEST_VERSION=main DASHBOARD_TEST_VERSION=main \
       docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
-    AUTH_SERVER_TEST_VERSION="$AUTH_SERVER_TEST_VERSION" API_TEST_VERSION="$API_TEST_VERSION" DASHBOARD_TEST_VERSION="$DASHBOARD_TEST_VERSION" \
+    AUTH_SERVER_TEST_VERSION=main API_TEST_VERSION=main DASHBOARD_TEST_VERSION=main \
       docker compose -f docker-compose.yml -f docker-compose.test.yml up -d --no-deps --force-recreate auth-server api dashboard
     ;;
   *)
