@@ -97,6 +97,14 @@ validate_build_inputs() {
   exit 1
 }
 
+disable_dockerignore_if_present() {
+  local context_dir="$1"
+  if [[ -f "${context_dir}/.dockerignore" ]]; then
+    echo "==> Removing ${context_dir}/.dockerignore for test-mode builds" >&2
+    rm -f "${context_dir}/.dockerignore"
+  fi
+}
+
 sync_repo() {
   local name="$1"
   local url="$2"
@@ -205,6 +213,10 @@ IFS='|' read -r DASHBOARD_BUILD_CONTEXT_DIR DASHBOARD_DOCKERFILE_NAME < <(resolv
 IFS='|' read -r AUTH_SERVER_BUILD_CONTEXT_DIR AUTH_SERVER_DOCKERFILE_NAME < <(validate_build_inputs "${AUTH_SERVER_DIR}" "${AUTH_SERVER_DOCKERFILE_PATH}" "${AUTH_SERVER_BUILD_CONTEXT_DIR}" "${AUTH_SERVER_DOCKERFILE_NAME}")
 IFS='|' read -r API_BUILD_CONTEXT_DIR API_DOCKERFILE_NAME < <(validate_build_inputs "${API_DIR}" "${API_DOCKERFILE_PATH}" "${API_BUILD_CONTEXT_DIR}" "${API_DOCKERFILE_NAME}")
 IFS='|' read -r DASHBOARD_BUILD_CONTEXT_DIR DASHBOARD_DOCKERFILE_NAME < <(validate_build_inputs "${DASHBOARD_DIR}" "${DASHBOARD_DOCKERFILE_PATH}" "${DASHBOARD_BUILD_CONTEXT_DIR}" "${DASHBOARD_DOCKERFILE_NAME}")
+
+disable_dockerignore_if_present "${AUTH_SERVER_BUILD_CONTEXT_DIR}"
+disable_dockerignore_if_present "${API_BUILD_CONTEXT_DIR}"
+disable_dockerignore_if_present "${DASHBOARD_BUILD_CONTEXT_DIR}"
 
 ECONOMY_PLUGIN_JAR_PATH="$(build_economy_plugin "${ECONOMY_DIR}")"
 
