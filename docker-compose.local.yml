@@ -1,0 +1,28 @@
+services:
+  # Local dev prefers source build contexts. Point *_BUILD_CONTEXT env vars
+  # at local checkouts, for example ../craftalism-api.
+  auth-server:
+    image: craftalism-authorization-server:local
+    build:
+      context: ${AUTH_SERVER_BUILD_CONTEXT:-../craftalism-authorization-server}
+      dockerfile: ${AUTH_SERVER_DOCKERFILE:-Dockerfile}
+
+  api:
+    image: craftalism-api:local
+    build:
+      context: ${API_BUILD_CONTEXT:-../craftalism-api}
+      dockerfile: ${API_DOCKERFILE:-Dockerfile}
+
+  dashboard:
+    image: craftalism-dashboard:local
+    build:
+      context: ${DASHBOARD_BUILD_CONTEXT:-../craftalism-dashboard}
+      dockerfile: ${DASHBOARD_DOCKERFILE:-Dockerfile}
+
+  minecraft:
+    # Dev should use a locally built plugin jar instead of release downloads.
+    environment:
+      PLUGINS: ""
+    volumes:
+      - minecraft_data:/data
+      - ${ECONOMY_PLUGIN_JAR:?Set ECONOMY_PLUGIN_JAR to a locally built craftalism-economy jar}:/data/plugins/craftalism-economy.jar:ro
