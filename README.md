@@ -146,7 +146,15 @@ docker compose -f docker-compose.yml -f docker-compose.test.yml up -d --no-deps 
 
 You can also prefer `main` tags. The helper script handles missing `main` tags per service by falling back to `latest` so startup does not fail with `manifest unknown`.
 
-> Important: a GitHub branch named `main` does **not** automatically mean a registry image tag named `main` exists; that depends on each app repo's image publish workflow.
+```bash
+AUTH_SERVER_TEST_VERSION=main API_TEST_VERSION=main DASHBOARD_TEST_VERSION=main \
+  docker compose -f docker-compose.yml -f docker-compose.test.yml pull auth-server api dashboard
+AUTH_SERVER_TEST_VERSION=main API_TEST_VERSION=main DASHBOARD_TEST_VERSION=main \
+  docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
+AUTH_SERVER_TEST_VERSION=main API_TEST_VERSION=main DASHBOARD_TEST_VERSION=main \
+  docker compose -f docker-compose.yml -f docker-compose.test.yml up -d --no-deps --force-recreate auth-server api dashboard
+```
+Optional helper script:
 
 ```bash
 ./start.sh prod      # production pins from .env
