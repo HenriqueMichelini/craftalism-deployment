@@ -53,18 +53,38 @@ sync_repo() {
 
 build_economy_plugin() {
   local repo_dir="$1"
+  local build_dir="${repo_dir}"
   local output_jar=""
 
   echo "==> Building economy plugin from ${repo_dir}"
 
-  if [[ -x "${repo_dir}/gradlew" ]]; then
-    docker run --rm -v "${repo_dir}:/workspace" -w /workspace gradle:8.7.0-jdk21 ./gradlew --no-daemon clean build -x test
-    output_jar="$(find "${repo_dir}/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-javadoc.jar' ! -name '*-plain.jar' | head -n 1)"
-  elif [[ -f "${repo_dir}/pom.xml" ]]; then
-    docker run --rm -v "${repo_dir}:/workspace" -w /workspace maven:3.9.11-eclipse-temurin-21 mvn -DskipTests clean package
-    output_jar="$(find "${repo_dir}/target" -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-javadoc.jar' | head -n 1)"
+  if [[ ! -f "${build_dir}/gradlew" && ! -f "${build_dir}/pom.xml" ]]; then
+    local gradlew_path=""
+    local pom_path=""
+    gradlew_path="$(find "${repo_dir}" -maxdepth 4 -type f -name gradlew | head -n 1 || true)"
+    pom_path="$(find "${repo_dir}" -maxdepth 4 -type f -name pom.xml | head -n 1 || true)"
+
+    if [[ -n "${gradlew_path}" ]]; then
+      build_dir="$(dirname "${gradlew_path}")"
+    elif [[ -n "${pom_path}" ]]; then
+      build_dir="$(dirname "${pom_path}")"
+    fi
+  fi
+
+  echo "==> Economy build root: ${build_dir}"
+
+  if [[ -f "${build_dir}/gradlew" ]]; then
+    # Some environments lose execute bits during checkout; fix it opportunistically.
+    chmod +x "${build_dir}/gradlew" || true
+    docker run --rm -v "${build_dir}:/workspace" -w /workspace gradle:8.7.0-jdk21 sh ./gradlew --no-daemon clean build -x test
+    output_jar="$(find "${build_dir}/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-javadoc.jar' ! -name '*-plain.jar' | head -n 1)"
+  elif [[ -f "${build_dir}/pom.xml" ]]; then
+    docker run --rm -v "${build_dir}:/workspace" -w /workspace maven:3.9.11-eclipse-temurin-21 mvn -DskipTests clean package
+    output_jar="$(find "${build_dir}/target" -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-javadoc.jar' | head -n 1)"
   else
     echo "Error: economy repo must contain either gradlew or pom.xml to build a plugin jar." >&2
+    echo "Checked root: ${repo_dir}" >&2
+    echo "Searched up to depth 4 for gradlew/pom.xml and found nothing." >&2
     exit 1
   fi
 
