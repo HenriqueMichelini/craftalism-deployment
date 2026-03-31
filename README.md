@@ -1,65 +1,22 @@
 # Craftalism Deployment
 
-> Docker Compose orchestration for the full Craftalism economy platform: database, authorization server, backend API, frontend dashboard, and Minecraft game server.
+> Docker Compose orchestration for the full Craftalism platform in two modes:
+> **production/release mode** (prebuilt tagged images) and **test/development mode** (live source synced from `main`).
 
----
+## Modes
 
-## Overview
+### Production / release mode (unchanged)
+- Uses `docker-compose.yml` only.
+- Uses image tags from `*_VERSION` variables in `.env`.
+- Minecraft downloads the economy plugin from GitHub Releases using `ECONOMY_VERSION`.
 
-This repository contains the runtime orchestration and environment configuration for the Craftalism stack. It does not contain application source code; all services are pulled from pre-built container images.
-
-**Key capabilities:**
-
-- Single `docker compose up` brings up the complete platform.
-- PostgreSQL provides shared persistent storage for the API and Authorization Server.
-- The Minecraft plugin is downloaded automatically from GitHub Releases at container startup using the configured `ECONOMY_VERSION`.
-- All inter-service communication happens on an isolated Docker network.
-
----
-
-## Architecture
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                      Craftalism Stack                        │
-│                                                             │
-│  Dashboard (:8080 → :80) ──────▶ API (:3000 → :8080)       │
-│                                         │                   │
-│                                         ▼                   │
-│                                    PostgreSQL               │
-│                                    (internal)               │
-│                                         ▲                   │
-│                                         │                   │
-│              Auth Server (:9000) ───────┘                   │
-│                    ▲                                        │
-│                    │                                        │
-│  Minecraft (:25565, :25575) ──────▶ API + Auth Server       │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Services
-
-| Container | Image | Purpose |
-|---|---|---|
-| `craftalism-postgres` | `postgres:18-alpine` | Primary database for API and Auth Server. |
-| `auth-db-init` | `postgres:18-alpine` | One-shot container that creates the `authserver` database before the app starts. |
-| `craftalism-auth-server` | `ghcr.io/henriquemichelini/craftalism-authorization-server` | OAuth2/JWT token issuer. |
-| `craftalism-api` | `ghcr.io/henriquemichelini/craftalism-api` | Core economy REST API. |
-| `craftalism-dashboard` | `ghcr.io/henriquemichelini/craftalism-dashboard` | Admin web UI. |
-| `craftalism-minecraft` | `itzg/minecraft-server` | Paper Minecraft server with the economy plugin. |
-
----
-
-## Tech Stack
-
-| Category | Technology |
-|---|---|
-| Orchestration | Docker Compose |
-| Database | PostgreSQL 18 (alpine) |
-| Backend runtime | Java / Spring Boot (via pre-built images) |
-| Frontend runtime | Nginx (via pre-built dashboard image) |
-| Game server | Paper via `itzg/minecraft-server` |
+### Test / development mode (new)
+- Uses `docker-compose.yml` + `docker-compose.test.yml`.
+- Uses `scripts/test-mode.sh` to clone/update source repos under `/tmp/craftalism-test-mode` (configurable).
+- Every run syncs each repo to the latest `origin/main`.
+- Builds auth server, API, and dashboard Docker images from local source.
+- Builds the economy plugin from local source and mounts the built JAR into Minecraft.
+- Keeps the same host ports and service names as production.
 
 ---
 
@@ -67,182 +24,105 @@ This repository contains the runtime orchestration and environment configuration
 
 - Docker Engine 20.10+
 - Docker Compose v2+
+- Git
 - Host resources: 4+ GB RAM, 20+ GB disk recommended
 
 ---
 
 ## Configuration
 
-### 1. Copy the environment template
+### 1) Copy env template
 
 ```bash
 cp env.example .env
 ```
 
-### 2. Set required values in `.env`
+### 2) Required production values in `.env`
 
-| Variable | Default | Description |
-|---|---|---|
-| `DB_PASSWORD` | — | **Required.** PostgreSQL password for the `craftalism` user. |
-| `MINECRAFT_CLIENT_SECRET` | — | **Required.** OAuth2 client secret for the Minecraft plugin. |
-| `RSA_PRIVATE_KEY` | — | **Required.** PEM-encoded RSA private key with literal `\n` separators. |
-| `RSA_PUBLIC_KEY` | — | **Required.** PEM-encoded RSA public key with literal `\n` separators. |
-| `AUTH_ISSUER_URI` | — | **Required.** Externally reachable URL of the Authorization Server. Must be consistent across all services. |
-| `ECONOMY_VERSION` | — | GitHub Release tag of the economy plugin JAR to download at Minecraft container startup. |
+| Variable | Description |
+|---|---|
+| `DB_PASSWORD` | PostgreSQL password for `craftalism` user. |
+| `MINECRAFT_CLIENT_SECRET` | OAuth2 client secret used by Minecraft integration. |
+| `RSA_PRIVATE_KEY` | PEM private key encoded as a single line with literal `\\n`. |
+| `RSA_PUBLIC_KEY` | PEM public key encoded as a single line with literal `\\n`. |
+| `AUTH_ISSUER_URI` | External issuer URI used across services. |
+| `ECONOMY_VERSION` | Economy plugin release version used in production mode only. |
 
-### 3. Generate secrets
+### 3) Optional test-mode repository/branch overrides
 
-```bash
-# Generate a random DB password or client secret
-openssl rand -base64 32
-```
+Defaults are already provided in `env.example`; override only if needed:
 
-### 4. Generate RSA keys
-
-> **Note:** A `generate-keys.sh` script is referenced in `env.example` but is not present in this repository. Generate keys manually with OpenSSL and place them in `.env` using literal `\n` as the line separator.
-
-```bash
-# Generate private key (PKCS#8 format)
-openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out private.pem
-
-# Derive public key
-openssl rsa -pubout -in private.pem -out public.pem
-
-# Convert to single-line env-safe format (literal \n)
-awk '{printf "%s\\n", $0}' private.pem   # → RSA_PRIVATE_KEY value
-awk '{printf "%s\\n", $0}' public.pem    # → RSA_PUBLIC_KEY value
-```
+- `AUTH_SERVER_REPO_URL`, `API_REPO_URL`, `DASHBOARD_REPO_URL`, `ECONOMY_REPO_URL`
+- `AUTH_SERVER_BRANCH`, `API_BRANCH`, `DASHBOARD_BRANCH`, `ECONOMY_BRANCH`
+- `TEST_WORKSPACE_ROOT` (default `/tmp/craftalism-test-mode`)
 
 ---
 
-## Running with Docker
+## Running the stack
 
-### Production mode (default)
+### Production / release mode
 
 ```bash
-# Pull images pinned by VERSION variables from .env
 docker compose pull
-
-# Start the stack
 docker compose up -d
-
-# Check service status
-docker compose ps
-
-# Follow all logs
-docker compose logs -f
 ```
 
-| Service | Host Port | URL |
-|---|---|---|
-| Dashboard | 8080 | `http://localhost:8080` |
-| API | 3000 | `http://localhost:3000` |
-| Authorization Server | 9000 | `http://localhost:9000` |
-| Minecraft | 25565 | `localhost:25565` |
-| RCON | 25575 | `localhost:25575` |
-
----
-
-## API Reference
-
-### Health checks
-
-```bash
-# API
-curl -f http://localhost:3000/actuator/health
-
-# Authorization Server
-curl -f http://localhost:9000/actuator/health
-
-# Dashboard
-curl -I http://localhost:8080/
-```
-
-All three should return HTTP 200 before considering the stack healthy.
-
----
-
-## Testing
-
-This repository does not include automated tests. Verification is done via the health checks above after `docker compose up`.
-
----
-
-## Project Structure
-
-```text
-.
-├── docker-compose.yml    # Full multi-service deployment topology
-├── env.example           # Environment variable template
-├── README.md
-└── LICENSE
-```
-
----
-
-## Common Operations
-
-### Stop the stack
+Stops exactly as before:
 
 ```bash
 docker compose down
 ```
 
-### Restart a single service
+### Test / development mode
+
+Start or refresh test mode:
 
 ```bash
-docker compose restart api
+./scripts/test-mode.sh
 ```
 
-### Update to latest images (production pins)
+What this does each run:
+1. Clones missing repos into `/tmp/craftalism-test-mode`.
+2. Fetches and hard-resets existing repos to `origin/<branch>` (default `main`).
+3. Rebuilds the economy plugin JAR from source.
+4. Regenerates `.test-mode.env` with resolved local paths.
+5. Runs Compose with `--build` using the test override file.
+
+Stop test mode:
 
 ```bash
-docker compose pull
-docker compose up -d
+./scripts/test-mode.sh down
 ```
 
-### Refresh mutable test tags
+> **Idempotent workflow:** rerunning `./scripts/test-mode.sh` updates existing checkouts and restarts the stack with fresh builds. No manual cleanup is required for normal use.
+
+---
+
+## Compose files
+
+- `docker-compose.yml`: canonical production/release deployment.
+- `docker-compose.test.yml`: test-only overrides that switch app services to local build contexts and switch Minecraft to a locally built economy plugin JAR.
+
+Production behavior stays stable because test behavior is isolated in the override file and helper script.
+
+---
+
+## Health checks
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.test.yml pull auth-server api dashboard
-docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
-docker compose -f docker-compose.yml -f docker-compose.test.yml up -d --no-deps --force-recreate auth-server api dashboard
-```
-
-### Back up the database
-
-```bash
-docker exec craftalism-postgres \
-  pg_dump -U craftalism craftalism > backup-$(date +%Y%m%d).sql
-```
-
-### Restore the database
-
-```bash
-docker exec -i craftalism-postgres \
-  psql -U craftalism craftalism < backup-YYYYMMDD.sql
+curl -f http://localhost:3000/actuator/health
+curl -f http://localhost:9000/actuator/health
+curl -I http://localhost:8080/
 ```
 
 ---
 
-## Known Limitations
+## Notes
 
-- Production reproducibility depends on pinning `AUTH_SERVER_VERSION`, `API_VERSION`, and `DASHBOARD_VERSION` in `.env`. Test mode intentionally overrides them to mutable test tags (`latest` by default).
-- `AUTH_ISSUER_URI` must be reachable by all services at runtime. An incorrect or unreachable issuer URI will cause token validation failures across the API and Minecraft plugin.
-- No reverse proxy or TLS termination is configured; all services are exposed directly on host ports.
-- No `generate-keys.sh` script is present despite being referenced in `env.example`.
-
----
-
-## Roadmap
-
-- Pin image tags to specific versions for reproducible deployments.
-- Add a `generate-keys.sh` script for RSA key generation.
-- Add an example reverse proxy configuration with TLS (Nginx, Caddy, or Traefik).
-- Add automated backup and restore scripts with scheduling guidance.
-
----
+- Test mode intentionally tracks mutable branch heads and is not reproducible like releases.
+- Production mode should pin `AUTH_SERVER_VERSION`, `API_VERSION`, `DASHBOARD_VERSION`, and `ECONOMY_VERSION`.
+- No reverse proxy/TLS is configured in this repository.
 
 ## License
 
-MIT. See [`LICENSE`](./LICENSE) for details.
+MIT. See [`LICENSE`](./LICENSE).
