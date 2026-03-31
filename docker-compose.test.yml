@@ -1,0 +1,30 @@
+services:
+  # Test mode override: build services from local checkouts synced to origin/main.
+  auth-server:
+    image: craftalism-dev/auth-server:main
+    build:
+      context: ${AUTH_SERVER_SRC_DIR:?AUTH_SERVER_SRC_DIR is required in test mode}
+      dockerfile: ${AUTH_SERVER_DOCKERFILE:-Dockerfile}
+    pull_policy: never
+
+  api:
+    image: craftalism-dev/api:main
+    build:
+      context: ${API_SRC_DIR:?API_SRC_DIR is required in test mode}
+      dockerfile: ${API_DOCKERFILE:-Dockerfile}
+    pull_policy: never
+
+  dashboard:
+    image: craftalism-dev/dashboard:main
+    build:
+      context: ${DASHBOARD_SRC_DIR:?DASHBOARD_SRC_DIR is required in test mode}
+      dockerfile: ${DASHBOARD_DOCKERFILE:-Dockerfile}
+    pull_policy: never
+
+  minecraft:
+    # Test mode must use the locally built economy plugin instead of a release tag.
+    environment:
+      PLUGINS: ""
+    volumes:
+      - minecraft_data:/data
+      - ${ECONOMY_PLUGIN_JAR_PATH:?ECONOMY_PLUGIN_JAR_PATH is required in test mode}:/data/plugins/craftalism-economy.jar:ro
