@@ -37,21 +37,25 @@ find_dockerfile() {
   local service_name="$2"
   local path=""
 
-  for candidate in Dockerfile docker/Dockerfile Dockerfile.prod docker/Dockerfile.prod; do
+  for candidate in Dockerfile docker/Dockerfile Dockerfile.prod docker/Dockerfile.prod Containerfile docker/Containerfile; do
     if [[ -f "${repo_dir}/${candidate}" ]]; then
       echo "${candidate}"
       return 0
     fi
   done
 
-  path="$(find "${repo_dir}" -maxdepth 4 -type f \( -name 'Dockerfile' -o -name 'Dockerfile.*' \) | head -n 1 || true)"
+  path="$(
+    find "${repo_dir}" -maxdepth 8 -type f \
+      \( -iname 'Dockerfile' -o -iname 'Dockerfile.*' -o -iname 'Containerfile' -o -iname 'Containerfile.*' \) \
+      | head -n 1 || true
+  )"
   if [[ -n "${path}" ]]; then
     path="${path#${repo_dir}/}"
     echo "${path}"
     return 0
   fi
 
-  echo "Error: could not find a Dockerfile for ${service_name} in ${repo_dir}." >&2
+  echo "Error: could not find a Dockerfile/Containerfile for ${service_name} in ${repo_dir}." >&2
   exit 1
 }
 
