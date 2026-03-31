@@ -70,7 +70,31 @@ resolve_build_inputs() {
     dockerfile_name="$(basename "${dockerfile_path}")"
   fi
 
-  printf '%s|%s\n' "${context_dir}" "${dockerfile_name}"
+  printf '%s|%s\n' "${context_dir}" "${context_dir}/${dockerfile_name}"
+}
+
+validate_build_inputs() {
+  local repo_dir="$1"
+  local discovered_path="$2"
+  local context_dir="$3"
+  local dockerfile_name="$4"
+
+  if [[ -f "${dockerfile_name}" ]]; then
+    printf '%s|%s\n' "${context_dir}" "${dockerfile_name}"
+    return 0
+  fi
+
+  # Fallback to repo-root context with discovered relative dockerfile path.
+  if [[ -f "${repo_dir}/${discovered_path}" ]]; then
+    printf '%s|%s\n' "${repo_dir}" "${repo_dir}/${discovered_path}"
+    return 0
+  fi
+
+  echo "Error: resolved build inputs are invalid for ${repo_dir}." >&2
+  echo "Expected one of:" >&2
+  echo "  - ${dockerfile_name}" >&2
+  echo "  - ${repo_dir}/${discovered_path}" >&2
+  exit 1
 }
 
 sync_repo() {
@@ -178,6 +202,9 @@ DASHBOARD_DOCKERFILE_PATH="$(find_dockerfile "${DASHBOARD_DIR}" "dashboard")"
 IFS='|' read -r AUTH_SERVER_BUILD_CONTEXT_DIR AUTH_SERVER_DOCKERFILE_NAME < <(resolve_build_inputs "${AUTH_SERVER_DIR}" "${AUTH_SERVER_DOCKERFILE_PATH}")
 IFS='|' read -r API_BUILD_CONTEXT_DIR API_DOCKERFILE_NAME < <(resolve_build_inputs "${API_DIR}" "${API_DOCKERFILE_PATH}")
 IFS='|' read -r DASHBOARD_BUILD_CONTEXT_DIR DASHBOARD_DOCKERFILE_NAME < <(resolve_build_inputs "${DASHBOARD_DIR}" "${DASHBOARD_DOCKERFILE_PATH}")
+IFS='|' read -r AUTH_SERVER_BUILD_CONTEXT_DIR AUTH_SERVER_DOCKERFILE_NAME < <(validate_build_inputs "${AUTH_SERVER_DIR}" "${AUTH_SERVER_DOCKERFILE_PATH}" "${AUTH_SERVER_BUILD_CONTEXT_DIR}" "${AUTH_SERVER_DOCKERFILE_NAME}")
+IFS='|' read -r API_BUILD_CONTEXT_DIR API_DOCKERFILE_NAME < <(validate_build_inputs "${API_DIR}" "${API_DOCKERFILE_PATH}" "${API_BUILD_CONTEXT_DIR}" "${API_DOCKERFILE_NAME}")
+IFS='|' read -r DASHBOARD_BUILD_CONTEXT_DIR DASHBOARD_DOCKERFILE_NAME < <(validate_build_inputs "${DASHBOARD_DIR}" "${DASHBOARD_DOCKERFILE_PATH}" "${DASHBOARD_BUILD_CONTEXT_DIR}" "${DASHBOARD_DOCKERFILE_NAME}")
 
 ECONOMY_PLUGIN_JAR_PATH="$(build_economy_plugin "${ECONOMY_DIR}")"
 
