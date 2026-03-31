@@ -4,6 +4,8 @@ set -euo pipefail
 MODE="${1:-up}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKSPACE_ROOT="${TEST_WORKSPACE_ROOT:-/tmp/craftalism-test-mode}"
+REPOS_ROOT="${WORKSPACE_ROOT}/repos"
+ARTIFACTS_ROOT="${WORKSPACE_ROOT}/artifacts"
 ENV_FILE="${TEST_ENV_FILE:-${ROOT_DIR}/.test-mode.env}"
 
 AUTH_SERVER_REPO_URL="${AUTH_SERVER_REPO_URL:-https://github.com/HenriqueMichelini/craftalism-authorization-server.git}"
@@ -16,228 +18,173 @@ API_BRANCH="${API_BRANCH:-main}"
 DASHBOARD_BRANCH="${DASHBOARD_BRANCH:-main}"
 ECONOMY_BRANCH="${ECONOMY_BRANCH:-main}"
 
+AUTH_SERVER_REPO_DIR="${REPOS_ROOT}/craftalism-authorization-server"
+API_REPO_DIR="${REPOS_ROOT}/craftalism-api"
+DASHBOARD_REPO_DIR="${REPOS_ROOT}/craftalism-dashboard"
+ECONOMY_REPO_DIR="${REPOS_ROOT}/craftalism-economy"
+
+# Explicit deterministic build mapping (no heuristics):
+# - auth-server -> java/
+# - api         -> java/
+# - dashboard   -> react/
+# - economy     -> java/ (plugin build only)
+AUTH_SERVER_BUILD_CONTEXT="${AUTH_SERVER_REPO_DIR}/java"
+AUTH_SERVER_DOCKERFILE="dockerfile"
+API_BUILD_CONTEXT="${API_REPO_DIR}/java"
+API_DOCKERFILE="dockerfile"
+DASHBOARD_BUILD_CONTEXT="${DASHBOARD_REPO_DIR}/react"
+DASHBOARD_DOCKERFILE="dockerfile"
+ECONOMY_PLUGIN_PROJECT_DIR="${ECONOMY_REPO_DIR}/java"
+ECONOMY_PLUGIN_OUTPUT_JAR="${ARTIFACTS_ROOT}/craftalism-economy.jar"
+
+log() {
+  echo "[test-mode] $*"
+}
+
+fail() {
+  echo "[test-mode] ERROR: $*" >&2
+  exit 1
+}
+
 require_cmd() {
-  command -v "$1" >/dev/null 2>&1 || {
-    echo "Error: required command '$1' is not installed." >&2
-    exit 1
-  }
+  command -v "$1" >/dev/null 2>&1 || fail "required command '$1' is not installed"
 }
 
 validate_repo_url() {
   local name="$1"
   local url="$2"
-  if [[ -z "${url}" ]]; then
-    echo "Error: ${name} is empty. Set ${name} to a valid Git URL." >&2
-    exit 1
-  fi
-}
-
-find_dockerfile() {
-  local repo_dir="$1"
-  local service_name="$2"
-  local path=""
-
-  for candidate in Dockerfile docker/Dockerfile Dockerfile.prod docker/Dockerfile.prod Containerfile docker/Containerfile; do
-    if [[ -f "${repo_dir}/${candidate}" ]]; then
-      echo "${candidate}"
-      return 0
-    fi
-  done
-
-  path="$(
-    find "${repo_dir}" -maxdepth 8 -type f \
-      \( -iname 'Dockerfile' -o -iname 'Dockerfile.*' -o -iname 'Containerfile' -o -iname 'Containerfile.*' \) \
-      | head -n 1 || true
-  )"
-  if [[ -n "${path}" ]]; then
-    path="${path#${repo_dir}/}"
-    echo "${path}"
-    return 0
-  fi
-
-  echo "Error: could not find a Dockerfile/Containerfile for ${service_name} in ${repo_dir}." >&2
-  exit 1
-}
-
-resolve_build_inputs() {
-  local repo_dir="$1"
-  local dockerfile_path="$2"
-  local context_dir="${repo_dir}"
-  local dockerfile_name="${dockerfile_path}"
-
-  if [[ "${dockerfile_path}" == */* ]]; then
-    context_dir="${repo_dir}/$(dirname "${dockerfile_path}")"
-    dockerfile_name="$(basename "${dockerfile_path}")"
-  fi
-
-  printf '%s|%s\n' "${context_dir}" "${context_dir}/${dockerfile_name}"
-}
-
-validate_build_inputs() {
-  local repo_dir="$1"
-  local discovered_path="$2"
-  local context_dir="$3"
-  local dockerfile_name="$4"
-
-  if [[ -f "${dockerfile_name}" ]]; then
-    printf '%s|%s\n' "${context_dir}" "${dockerfile_name}"
-    return 0
-  fi
-
-  # Fallback to repo-root context with discovered relative dockerfile path.
-  if [[ -f "${repo_dir}/${discovered_path}" ]]; then
-    printf '%s|%s\n' "${repo_dir}" "${repo_dir}/${discovered_path}"
-    return 0
-  fi
-
-  echo "Error: resolved build inputs are invalid for ${repo_dir}." >&2
-  echo "Expected one of:" >&2
-  echo "  - ${dockerfile_name}" >&2
-  echo "  - ${repo_dir}/${discovered_path}" >&2
-  exit 1
-}
-
-disable_dockerignore_if_present() {
-  local context_dir="$1"
-  if [[ -f "${context_dir}/.dockerignore" ]]; then
-    echo "==> Removing ${context_dir}/.dockerignore for test-mode builds" >&2
-    rm -f "${context_dir}/.dockerignore"
-  fi
+  [[ -n "${url}" ]] || fail "${name} is empty; set it to a valid Git URL"
 }
 
 sync_repo() {
-  local name="$1"
-  local url="$2"
+  local service_name="$1"
+  local repo_url="$2"
   local branch="$3"
-  local target_dir="$4"
+  local repo_dir="$4"
 
-  echo "==> Syncing ${name} (${branch})"
-  if [[ ! -d "${target_dir}/.git" ]]; then
-    rm -rf "${target_dir}"
-    git clone --branch "${branch}" --single-branch "${url}" "${target_dir}"
-  else
-    git -C "${target_dir}" remote set-url origin "${url}"
-    git -C "${target_dir}" fetch --prune origin "${branch}"
-    git -C "${target_dir}" checkout -B "${branch}" "origin/${branch}"
-    git -C "${target_dir}" reset --hard "origin/${branch}"
-    git -C "${target_dir}" clean -fd
+  log "Syncing ${service_name} repository"
+  log "  repo:   ${repo_url}"
+  log "  branch: ${branch}"
+  log "  path:   ${repo_dir}"
+
+  if [[ ! -d "${repo_dir}/.git" ]]; then
+    mkdir -p "$(dirname "${repo_dir}")"
+    git clone --branch "${branch}" --single-branch "${repo_url}" "${repo_dir}" \
+      || fail "failed to clone ${service_name} repository"
+    return
   fi
+
+  git -C "${repo_dir}" remote set-url origin "${repo_url}" \
+    || fail "failed to set origin URL for ${service_name}"
+
+  if ! git -C "${repo_dir}" pull --ff-only origin "${branch}"; then
+    fail "failed to pull ${service_name} (${branch}). Resolve local conflicts/divergence in ${repo_dir}, then re-run."
+  fi
+}
+
+validate_path() {
+  local label="$1"
+  local path="$2"
+  [[ -e "${path}" ]] || fail "${label} not found: ${path}"
 }
 
 build_economy_plugin() {
-  local repo_dir="$1"
-  local build_dir="${repo_dir}"
-  local output_jar=""
+  local project_dir="$1"
+  local output_jar="$2"
+  local built_jar=""
 
-  echo "==> Building economy plugin from ${repo_dir}" >&2
+  log "Building economy plugin"
+  log "  project dir: ${project_dir}"
 
-  if [[ ! -f "${build_dir}/gradlew" && ! -f "${build_dir}/pom.xml" ]]; then
-    local gradlew_path=""
-    local pom_path=""
-    gradlew_path="$(find "${repo_dir}" -maxdepth 4 -type f -name gradlew | head -n 1 || true)"
-    pom_path="$(find "${repo_dir}" -maxdepth 4 -type f -name pom.xml | head -n 1 || true)"
+  mkdir -p "$(dirname "${output_jar}")"
 
-    if [[ -n "${gradlew_path}" ]]; then
-      build_dir="$(dirname "${gradlew_path}")"
-    elif [[ -n "${pom_path}" ]]; then
-      build_dir="$(dirname "${pom_path}")"
-    fi
-  fi
+  if [[ -f "${project_dir}/gradlew" ]]; then
+    chmod +x "${project_dir}/gradlew" || true
+    docker run --rm -v "${project_dir}:/workspace" -w /workspace gradle:8.7.0-jdk21 sh ./gradlew --no-daemon clean build -x test \
+      || fail "economy plugin Gradle build failed"
 
-  echo "==> Economy build root: ${build_dir}" >&2
+    built_jar="$(find "${project_dir}/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-javadoc.jar' ! -name '*-plain.jar' | head -n 1 || true)"
+  elif [[ -f "${project_dir}/pom.xml" ]]; then
+    docker run --rm -v "${project_dir}:/workspace" -w /workspace maven:3.9.11-eclipse-temurin-21 mvn -DskipTests clean package \
+      || fail "economy plugin Maven build failed"
 
-  if [[ -f "${build_dir}/gradlew" ]]; then
-    # Some environments lose execute bits during checkout; fix it opportunistically.
-    chmod +x "${build_dir}/gradlew" || true
-    docker run --rm -v "${build_dir}:/workspace" -w /workspace gradle:8.7.0-jdk21 sh ./gradlew --no-daemon clean build -x test >&2
-    output_jar="$(find "${build_dir}/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-javadoc.jar' ! -name '*-plain.jar' | head -n 1)"
-  elif [[ -f "${build_dir}/pom.xml" ]]; then
-    docker run --rm -v "${build_dir}:/workspace" -w /workspace maven:3.9.11-eclipse-temurin-21 mvn -DskipTests clean package >&2
-    output_jar="$(find "${build_dir}/target" -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-javadoc.jar' | head -n 1)"
+    built_jar="$(find "${project_dir}/target" -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-javadoc.jar' | head -n 1 || true)"
   else
-    echo "Error: economy repo must contain either gradlew or pom.xml to build a plugin jar." >&2
-    echo "Checked root: ${repo_dir}" >&2
-    echo "Searched up to depth 4 for gradlew/pom.xml and found nothing." >&2
-    exit 1
+    fail "economy plugin project must contain either ${project_dir}/gradlew or ${project_dir}/pom.xml"
   fi
 
-  if [[ -z "${output_jar}" ]]; then
-    echo "Error: failed to locate built economy plugin jar." >&2
-    exit 1
-  fi
+  [[ -n "${built_jar}" ]] || fail "could not locate built plugin JAR in ${project_dir}"
 
-  echo "${output_jar}"
+  cp -f "${built_jar}" "${output_jar}" || fail "failed to copy plugin JAR to ${output_jar}"
+  log "  plugin jar: ${output_jar}"
+}
+
+write_test_env() {
+  log "Writing test-mode env file: ${ENV_FILE}"
+  cat > "${ENV_FILE}" <<EOT
+# Auto-generated by scripts/test-mode.sh
+# Test mode only. Production env files are untouched.
+AUTH_SERVER_BUILD_CONTEXT=${AUTH_SERVER_BUILD_CONTEXT}
+AUTH_SERVER_DOCKERFILE=${AUTH_SERVER_DOCKERFILE}
+API_BUILD_CONTEXT=${API_BUILD_CONTEXT}
+API_DOCKERFILE=${API_DOCKERFILE}
+DASHBOARD_BUILD_CONTEXT=${DASHBOARD_BUILD_CONTEXT}
+DASHBOARD_DOCKERFILE=${DASHBOARD_DOCKERFILE}
+ECONOMY_PLUGIN_JAR_PATH=${ECONOMY_PLUGIN_OUTPUT_JAR}
+EOT
 }
 
 compose_cmd() {
-  docker compose --env-file "${ROOT_DIR}/.env" --env-file "${ENV_FILE}" -f "${ROOT_DIR}/docker-compose.yml" -f "${ROOT_DIR}/docker-compose.test.yml" "$@"
+  docker compose \
+    --env-file "${ROOT_DIR}/.env" \
+    --env-file "${ENV_FILE}" \
+    -f "${ROOT_DIR}/docker-compose.yml" \
+    -f "${ROOT_DIR}/docker-compose.test.yml" "$@"
 }
 
 require_cmd git
 require_cmd docker
 
-mkdir -p "${WORKSPACE_ROOT}"
+mkdir -p "${REPOS_ROOT}" "${ARTIFACTS_ROOT}"
 
 if [[ "${MODE}" == "down" ]]; then
+  log "Stopping test-mode stack"
   if [[ ! -f "${ENV_FILE}" ]]; then
-    echo "No ${ENV_FILE} found; running down with base .env only."
-    docker compose --env-file "${ROOT_DIR}/.env" -f "${ROOT_DIR}/docker-compose.yml" -f "${ROOT_DIR}/docker-compose.test.yml" down
-  else
-    compose_cmd down
+    fail "${ENV_FILE} does not exist. Run test mode 'up' first, or set TEST_ENV_FILE to a valid file."
   fi
+  compose_cmd down
   exit 0
 fi
+
+log "Starting test-mode orchestration"
 
 validate_repo_url AUTH_SERVER_REPO_URL "${AUTH_SERVER_REPO_URL}"
 validate_repo_url API_REPO_URL "${API_REPO_URL}"
 validate_repo_url DASHBOARD_REPO_URL "${DASHBOARD_REPO_URL}"
 validate_repo_url ECONOMY_REPO_URL "${ECONOMY_REPO_URL}"
 
-AUTH_SERVER_DIR="${WORKSPACE_ROOT}/auth-server"
-API_DIR="${WORKSPACE_ROOT}/api"
-DASHBOARD_DIR="${WORKSPACE_ROOT}/dashboard"
-ECONOMY_DIR="${WORKSPACE_ROOT}/economy"
+# 1) Sync repos
+sync_repo "auth-server" "${AUTH_SERVER_REPO_URL}" "${AUTH_SERVER_BRANCH}" "${AUTH_SERVER_REPO_DIR}"
+sync_repo "api" "${API_REPO_URL}" "${API_BRANCH}" "${API_REPO_DIR}"
+sync_repo "dashboard" "${DASHBOARD_REPO_URL}" "${DASHBOARD_BRANCH}" "${DASHBOARD_REPO_DIR}"
+sync_repo "economy" "${ECONOMY_REPO_URL}" "${ECONOMY_BRANCH}" "${ECONOMY_REPO_DIR}"
 
-sync_repo "authorization server" "${AUTH_SERVER_REPO_URL}" "${AUTH_SERVER_BRANCH}" "${AUTH_SERVER_DIR}"
-sync_repo "api" "${API_REPO_URL}" "${API_BRANCH}" "${API_DIR}"
-sync_repo "dashboard" "${DASHBOARD_REPO_URL}" "${DASHBOARD_BRANCH}" "${DASHBOARD_DIR}"
-sync_repo "economy plugin" "${ECONOMY_REPO_URL}" "${ECONOMY_BRANCH}" "${ECONOMY_DIR}"
+# 2) Validate expected directories/files from explicit mapping
+validate_path "auth-server build context" "${AUTH_SERVER_BUILD_CONTEXT}"
+validate_path "auth-server dockerfile" "${AUTH_SERVER_BUILD_CONTEXT}/${AUTH_SERVER_DOCKERFILE}"
+validate_path "api build context" "${API_BUILD_CONTEXT}"
+validate_path "api dockerfile" "${API_BUILD_CONTEXT}/${API_DOCKERFILE}"
+validate_path "dashboard build context" "${DASHBOARD_BUILD_CONTEXT}"
+validate_path "dashboard dockerfile" "${DASHBOARD_BUILD_CONTEXT}/${DASHBOARD_DOCKERFILE}"
+validate_path "economy plugin project" "${ECONOMY_PLUGIN_PROJECT_DIR}"
 
-AUTH_SERVER_DOCKERFILE_PATH="$(find_dockerfile "${AUTH_SERVER_DIR}" "authorization server")"
-API_DOCKERFILE_PATH="$(find_dockerfile "${API_DIR}" "api")"
-DASHBOARD_DOCKERFILE_PATH="$(find_dockerfile "${DASHBOARD_DIR}" "dashboard")"
+# 3) Build plugin
+build_economy_plugin "${ECONOMY_PLUGIN_PROJECT_DIR}" "${ECONOMY_PLUGIN_OUTPUT_JAR}"
 
-IFS='|' read -r AUTH_SERVER_BUILD_CONTEXT_DIR AUTH_SERVER_DOCKERFILE_NAME < <(resolve_build_inputs "${AUTH_SERVER_DIR}" "${AUTH_SERVER_DOCKERFILE_PATH}")
-IFS='|' read -r API_BUILD_CONTEXT_DIR API_DOCKERFILE_NAME < <(resolve_build_inputs "${API_DIR}" "${API_DOCKERFILE_PATH}")
-IFS='|' read -r DASHBOARD_BUILD_CONTEXT_DIR DASHBOARD_DOCKERFILE_NAME < <(resolve_build_inputs "${DASHBOARD_DIR}" "${DASHBOARD_DOCKERFILE_PATH}")
-IFS='|' read -r AUTH_SERVER_BUILD_CONTEXT_DIR AUTH_SERVER_DOCKERFILE_NAME < <(validate_build_inputs "${AUTH_SERVER_DIR}" "${AUTH_SERVER_DOCKERFILE_PATH}" "${AUTH_SERVER_BUILD_CONTEXT_DIR}" "${AUTH_SERVER_DOCKERFILE_NAME}")
-IFS='|' read -r API_BUILD_CONTEXT_DIR API_DOCKERFILE_NAME < <(validate_build_inputs "${API_DIR}" "${API_DOCKERFILE_PATH}" "${API_BUILD_CONTEXT_DIR}" "${API_DOCKERFILE_NAME}")
-IFS='|' read -r DASHBOARD_BUILD_CONTEXT_DIR DASHBOARD_DOCKERFILE_NAME < <(validate_build_inputs "${DASHBOARD_DIR}" "${DASHBOARD_DOCKERFILE_PATH}" "${DASHBOARD_BUILD_CONTEXT_DIR}" "${DASHBOARD_DOCKERFILE_NAME}")
+# 4) Generate dedicated test env and run compose
+write_test_env
 
-disable_dockerignore_if_present "${AUTH_SERVER_BUILD_CONTEXT_DIR}"
-disable_dockerignore_if_present "${API_BUILD_CONTEXT_DIR}"
-disable_dockerignore_if_present "${DASHBOARD_BUILD_CONTEXT_DIR}"
+log "Launching docker compose (base + test override)"
+compose_cmd up --build -d
 
-ECONOMY_PLUGIN_JAR_PATH="$(build_economy_plugin "${ECONOMY_DIR}")"
-
-if [[ "${ECONOMY_PLUGIN_JAR_PATH}" == *$'\n'* ]]; then
-  echo "Error: economy plugin jar path contains unexpected newline(s)." >&2
-  exit 1
-fi
-
-{
-  echo "# Auto-generated by scripts/test-mode.sh"
-  printf 'AUTH_SERVER_SRC_DIR=%s\n' "${AUTH_SERVER_DIR}"
-  printf 'AUTH_SERVER_BUILD_CONTEXT_DIR=%s\n' "${AUTH_SERVER_BUILD_CONTEXT_DIR}"
-  printf 'AUTH_SERVER_DOCKERFILE=%s\n' "${AUTH_SERVER_DOCKERFILE_NAME}"
-  printf 'API_SRC_DIR=%s\n' "${API_DIR}"
-  printf 'API_BUILD_CONTEXT_DIR=%s\n' "${API_BUILD_CONTEXT_DIR}"
-  printf 'API_DOCKERFILE=%s\n' "${API_DOCKERFILE_NAME}"
-  printf 'DASHBOARD_SRC_DIR=%s\n' "${DASHBOARD_DIR}"
-  printf 'DASHBOARD_BUILD_CONTEXT_DIR=%s\n' "${DASHBOARD_BUILD_CONTEXT_DIR}"
-  printf 'DASHBOARD_DOCKERFILE=%s\n' "${DASHBOARD_DOCKERFILE_NAME}"
-  printf 'ECONOMY_PLUGIN_JAR_PATH=%s\n' "${ECONOMY_PLUGIN_JAR_PATH}"
-} > "${ENV_FILE}"
-
-echo "==> Starting test stack with automatic rebuild"
-compose_cmd up -d --build --remove-orphans
+log "Test mode is up"

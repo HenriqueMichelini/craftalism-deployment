@@ -1,28 +1,28 @@
 services:
-  # Test mode override: build services from local checkouts synced to origin/main.
+  # Test mode override: build services from explicit local paths.
   auth-server:
     image: craftalism-dev/auth-server:main
     build:
-      context: ${AUTH_SERVER_SRC_DIR:?AUTH_SERVER_SRC_DIR is required in test mode}
-      dockerfile: ${AUTH_SERVER_DOCKERFILE:-Dockerfile}
+      context: ${AUTH_SERVER_BUILD_CONTEXT:?AUTH_SERVER_BUILD_CONTEXT is required in test mode}
+      dockerfile: ${AUTH_SERVER_DOCKERFILE:?AUTH_SERVER_DOCKERFILE is required in test mode}
     pull_policy: never
 
   api:
     image: craftalism-dev/api:main
     build:
-      context: ${API_SRC_DIR:?API_SRC_DIR is required in test mode}
-      dockerfile: ${API_DOCKERFILE:-Dockerfile}
+      context: ${API_BUILD_CONTEXT:?API_BUILD_CONTEXT is required in test mode}
+      dockerfile: ${API_DOCKERFILE:?API_DOCKERFILE is required in test mode}
     pull_policy: never
 
   dashboard:
     image: craftalism-dev/dashboard:main
     build:
-      context: ${DASHBOARD_SRC_DIR:?DASHBOARD_SRC_DIR is required in test mode}
-      dockerfile: ${DASHBOARD_DOCKERFILE:-Dockerfile}
+      context: ${DASHBOARD_BUILD_CONTEXT:?DASHBOARD_BUILD_CONTEXT is required in test mode}
+      dockerfile: ${DASHBOARD_DOCKERFILE:?DASHBOARD_DOCKERFILE is required in test mode}
     pull_policy: never
 
   minecraft:
-    # Test mode must use the locally built economy plugin instead of a release tag.
+    # Test mode uses a locally built economy plugin jar mounted into plugins/.
     environment:
       PLUGINS: ""
     volumes:
