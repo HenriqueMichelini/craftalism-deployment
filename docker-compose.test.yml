@@ -1,0 +1,25 @@
+services:
+  # Staging/test points to immutable CI-built images tagged by branch + short SHA.
+  auth-server:
+    image: ghcr.io/henriquemichelini/craftalism-authorization-server:${AUTH_SERVER_CI_TAG:?Set AUTH_SERVER_CI_TAG (example main-a1b2c3d)}
+    labels:
+      craftalism.commit: ${AUTH_SERVER_GIT_SHA:-unknown}
+
+  api:
+    image: ghcr.io/henriquemichelini/craftalism-api:${API_CI_TAG:?Set API_CI_TAG (example main-a1b2c3d)}
+    labels:
+      craftalism.commit: ${API_GIT_SHA:-unknown}
+
+  dashboard:
+    image: ghcr.io/henriquemichelini/craftalism-dashboard:${DASHBOARD_CI_TAG:?Set DASHBOARD_CI_TAG (example main-a1b2c3d)}
+    labels:
+      craftalism.commit: ${DASHBOARD_GIT_SHA:-unknown}
+
+  minecraft:
+    # Test should also use a locally built plugin artifact, not release transport.
+    environment:
+      PLUGINS: ""
+      ECONOMY_PLUGIN_COMMIT: ${ECONOMY_GIT_SHA:-unknown}
+    volumes:
+      - minecraft_data:/data
+      - ${ECONOMY_PLUGIN_JAR:?Set ECONOMY_PLUGIN_JAR to the test-built craftalism-economy jar}:/data/plugins/craftalism-economy.jar:ro
