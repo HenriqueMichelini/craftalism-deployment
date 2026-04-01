@@ -37,7 +37,7 @@ clone_or_update_repo "craftalism-api" "${API_BRANCH:-$DEFAULT_BRANCH}"
 clone_or_update_repo "craftalism-dashboard" "${DASHBOARD_BRANCH:-$DEFAULT_BRANCH}"
 clone_or_update_repo "craftalism-economy" "${ECONOMY_BRANCH:-$DEFAULT_BRANCH}"
 
-"$ROOT_DIR/scripts/build-economy-plugin.sh" "$PARENT_DIR/craftalism-economy"
+"$ROOT_DIR/scripts/build-economy-plugin.sh" "$PARENT_DIR/craftalism-economy/java/"
 
 echo
 echo "[bootstrap] Local development dependencies are ready."
