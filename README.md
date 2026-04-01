@@ -39,19 +39,6 @@ Set required secrets (`DB_PASSWORD`, `MINECRAFT_CLIENT_SECRET`, `RSA_PRIVATE_KEY
 
 Use local build contexts for Java/UI services and a locally built Minecraft economy plugin jar.
 
-### Bootstrap local dependencies (optional but recommended)
-
-If you only cloned `craftalism-deployment`, run:
-
-```bash
-scripts/bootstrap-local-dev.sh
-```
-
-This script will:
-- clone missing sibling repositories (`craftalism-api`, `craftalism-authorization-server`, `craftalism-dashboard`, `craftalism-economy`)
-- fast-forward existing clones when possible
-- build `.local-dev/craftalism-economy.jar`
-
 ### Build the economy plugin locally
 
 ```bash
@@ -68,8 +55,7 @@ This produces:
 export AUTH_SERVER_BUILD_CONTEXT=../craftalism-authorization-server
 export API_BUILD_CONTEXT=../craftalism-api
 export DASHBOARD_BUILD_CONTEXT=../craftalism-dashboard
-# optional: defaults to ./.local-dev/craftalism-economy.jar
-# export ECONOMY_PLUGIN_JAR=$PWD/.local-dev/craftalism-economy.jar
+export ECONOMY_PLUGIN_JAR=$PWD/.local-dev/craftalism-economy.jar
 
 docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
 ```
@@ -78,7 +64,6 @@ Notes:
 - The compose local override builds `auth-server`, `api`, and `dashboard` from local source paths.
 - Minecraft plugin uses local jar mount (`/data/plugins/craftalism-economy.jar`) and does **not** use GitHub Releases in local mode.
 - If you are iterating heavily on one service, direct IDE execution is recommended while keeping dependencies (Postgres/Auth/API) in Compose.
-- Local mode does not require setting production `*_VERSION` values; production-only image tags now have non-`latest` defaults and can still be overridden in `.env`.
 
 ---
 

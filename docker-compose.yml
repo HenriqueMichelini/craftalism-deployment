@@ -36,7 +36,7 @@ services:
       - craftalism
 
   auth-server:
-    image: ghcr.io/henriquemichelini/craftalism-authorization-server:${AUTH_SERVER_VERSION:-v1.0.0}
+    image: ghcr.io/henriquemichelini/craftalism-authorization-server:${AUTH_SERVER_VERSION:?Set AUTH_SERVER_VERSION to an immutable release tag}
     container_name: craftalism-auth-server
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/authserver
@@ -64,7 +64,7 @@ services:
       start_period: 40s
 
   api:
-    image: ghcr.io/henriquemichelini/craftalism-api:${API_VERSION:-v1.0.0}
+    image: ghcr.io/henriquemichelini/craftalism-api:${API_VERSION:?Set API_VERSION to an immutable release tag}
     container_name: craftalism-api
     environment:
       SPRING_PROFILES_ACTIVE: docker
@@ -91,7 +91,7 @@ services:
       start_period: 40s
 
   dashboard:
-    image: ghcr.io/henriquemichelini/craftalism-dashboard:${DASHBOARD_VERSION:-v1.0.0}
+    image: ghcr.io/henriquemichelini/craftalism-dashboard:${DASHBOARD_VERSION:?Set DASHBOARD_VERSION to an immutable release tag}
     container_name: craftalism-dashboard
     environment:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
@@ -133,7 +133,7 @@ services:
       CRAFTALISM_API_KEY: ${MINECRAFT_CLIENT_SECRET}
       AUTH_ISSUER_URI: ${AUTH_ISSUER_URI:-http://craftalism-auth-server:9000}
       PLUGINS: >-
-        https://github.com/HenriqueMichelini/craftalism-economy/releases/download/v${ECONOMY_VERSION:-1.5}/craftalism-economy-${ECONOMY_VERSION:-1.5}.jar
+        https://github.com/HenriqueMichelini/craftalism-economy/releases/download/v${ECONOMY_VERSION:?Set ECONOMY_VERSION to a released plugin version}/craftalism-economy-${ECONOMY_VERSION}.jar
     volumes:
       - minecraft_data:/data
     ports:

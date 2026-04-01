@@ -25,4 +25,4 @@ services:
       PLUGINS: ""
     volumes:
       - minecraft_data:/data
-      - ${ECONOMY_PLUGIN_JAR:-./.local-dev/craftalism-economy.jar}:/data/plugins/craftalism-economy.jar:ro
+      - ${ECONOMY_PLUGIN_JAR:?Set ECONOMY_PLUGIN_JAR to a locally built craftalism-economy jar}:/data/plugins/craftalism-economy.jar:ro

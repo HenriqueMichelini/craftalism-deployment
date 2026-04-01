@@ -22,4 +22,4 @@ services:
       ECONOMY_PLUGIN_COMMIT: ${ECONOMY_GIT_SHA:-unknown}
     volumes:
       - minecraft_data:/data
-      - ${ECONOMY_PLUGIN_JAR:-./.local-dev/craftalism-economy.jar}:/data/plugins/craftalism-economy.jar:ro
+      - ${ECONOMY_PLUGIN_JAR:?Set ECONOMY_PLUGIN_JAR to the test-built craftalism-economy jar}:/data/plugins/craftalism-economy.jar:ro
