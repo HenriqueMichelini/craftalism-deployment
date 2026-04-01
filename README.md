@@ -1,14 +1,18 @@
 # Craftalism Deployment
 
-> Docker Compose orchestration for the full Craftalism platform in two modes:
-> **production/release mode** (prebuilt tagged images) and **test/development mode** (live source synced from `main`).
+Docker Compose orchestration for the Craftalism platform with **explicitly separated workflows**:
 
-## Modes
+1. **Local development** (`docker-compose.yml` + `docker-compose.local.yml`)
+2. **Staging / test** (`docker-compose.yml` + `docker-compose.test.yml`)
+3. **Production** (`docker-compose.yml` only)
 
-### Production / release mode (unchanged)
-- Uses `docker-compose.yml` only.
-- Uses image tags from `*_VERSION` variables in `.env`.
-- Minecraft downloads the economy plugin from GitHub Releases using `ECONOMY_VERSION`.
+---
+
+## Why this split exists
+
+- Local development should be fast, editable, and not depend on published releases.
+- Staging/test should be immutable and traceable to a commit.
+- Production should be immutable and tied to released versions only.
 
 ---
 
@@ -17,53 +21,113 @@
 - Docker Engine 20.10+
 - Docker Compose v2+
 - Git
-- Host resources: 4+ GB RAM, 20+ GB disk recommended
+- For local plugin builds: JDK compatible with the economy plugin project
 
 ---
 
 ## Configuration
 
-### 1) Copy env template
-
 ```bash
 cp env.example .env
 ```
 
-### 2) Required production values in `.env`
-
-| Variable | Description |
-|---|---|
-| `DB_PASSWORD` | PostgreSQL password for `craftalism` user. |
-| `MINECRAFT_CLIENT_SECRET` | OAuth2 client secret used by Minecraft integration. |
-| `RSA_PRIVATE_KEY` | PEM private key encoded as a single line with literal `\\n`. |
-| `RSA_PUBLIC_KEY` | PEM public key encoded as a single line with literal `\\n`. |
-| `AUTH_ISSUER_URI` | External issuer URI used across services. |
-| `ECONOMY_VERSION` | Economy plugin release version used in production mode only. |
+Set required secrets (`DB_PASSWORD`, `MINECRAFT_CLIENT_SECRET`, `RSA_PRIVATE_KEY`, `RSA_PUBLIC_KEY`, etc.) in `.env`.
 
 ---
 
-## Running the stack
+## 1) Local development flow
 
-### Production / release mode
+Use local build contexts for Java/UI services and a locally built Minecraft economy plugin jar.
+
+### Bootstrap local dependencies (optional but recommended)
+
+If you only cloned `craftalism-deployment`, run:
+
+```bash
+scripts/bootstrap-local-dev.sh
+```
+
+This script will:
+- clone missing sibling repositories (`craftalism-api`, `craftalism-authorization-server`, `craftalism-dashboard`, `craftalism-economy`)
+- fast-forward existing clones when possible
+- build `.local-dev/craftalism-economy.jar`
+
+### Build the economy plugin locally
+
+```bash
+scripts/build-economy-plugin.sh ../craftalism-economy
+```
+
+This produces:
+
+- `.local-dev/craftalism-economy.jar`
+
+### Run local stack
+
+```bash
+export AUTH_SERVER_BUILD_CONTEXT=../craftalism-authorization-server
+export API_BUILD_CONTEXT=../craftalism-api
+export DASHBOARD_BUILD_CONTEXT=../craftalism-dashboard
+# optional: defaults to ./.local-dev/craftalism-economy.jar
+# export ECONOMY_PLUGIN_JAR=$PWD/.local-dev/craftalism-economy.jar
+
+docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
+```
+
+Notes:
+- The compose local override builds `auth-server`, `api`, and `dashboard` from local source paths.
+- Minecraft plugin uses local jar mount (`/data/plugins/craftalism-economy.jar`) and does **not** use GitHub Releases in local mode.
+- If you are iterating heavily on one service, direct IDE execution is recommended while keeping dependencies (Postgres/Auth/API) in Compose.
+- Local mode does not require setting production `*_VERSION` values; production-only image tags now have non-`latest` defaults and can still be overridden in `.env`.
+
+---
+
+## 2) Staging / test flow
+
+Staging uses CI-built immutable images tagged by branch + short SHA, for example:
+
+- `craftalism-api:main-a1b2c3d`
+- `craftalism-authorization-server:main-a1b2c3d`
+- `craftalism-dashboard:main-a1b2c3d`
+
+The workflow `.github/workflows/build-staging-images.yml` builds and pushes those tags on each push to `main` or `feature/**`.
+
+### Run test stack
+
+```bash
+export AUTH_SERVER_CI_TAG=main-a1b2c3d
+export API_CI_TAG=main-a1b2c3d
+export DASHBOARD_CI_TAG=main-a1b2c3d
+export AUTH_SERVER_GIT_SHA=a1b2c3d
+export API_GIT_SHA=a1b2c3d
+export DASHBOARD_GIT_SHA=a1b2c3d
+export ECONOMY_GIT_SHA=a1b2c3d
+export ECONOMY_PLUGIN_JAR=$PWD/.local-dev/craftalism-economy.jar
+
+docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
+```
+
+Notes:
+- Test overrides replace service images with commit-tagged CI images.
+- Test still uses a locally built economy plugin artifact (mounted jar), not release download transport.
+- Commit metadata is attached as labels/environment values so the running commit is obvious.
+
+---
+
+## 3) Production flow
+
+Production uses `docker-compose.yml` only.
 
 ```bash
 docker compose pull
 docker compose up -d
 ```
 
-Stops exactly as before:
-
-```bash
-docker compose down
-```
-
----
-
-## Compose files
-
-- `docker-compose.yml`: canonical production/release deployment.
-
-Production behavior stays stable because test behavior is isolated in the override file and helper script.
+Production requirements:
+- Set immutable release tags in `.env` (`AUTH_SERVER_VERSION`, `API_VERSION`, `DASHBOARD_VERSION`, `ECONOMY_VERSION`).
+- Do **not** use `latest`.
+- Economy plugin is downloaded from GitHub Releases using `ECONOMY_VERSION` (release artifact path).
+- For maximum immutability, pin image digests (`image: repo:tag@sha256:...`) as a future hardening step.
 
 ---
 
@@ -77,11 +141,11 @@ curl -I http://localhost:8080/
 
 ---
 
-## Notes
+## Compose file responsibilities
 
-- Test mode intentionally tracks mutable branch heads and is not reproducible like releases.
-- Production mode should pin `AUTH_SERVER_VERSION`, `API_VERSION`, `DASHBOARD_VERSION`, and `ECONOMY_VERSION`.
-- No reverse proxy/TLS is configured in this repository.
+- `docker-compose.yml`: production-safe baseline.
+- `docker-compose.local.yml`: local source builds + local economy plugin jar.
+- `docker-compose.test.yml`: staging/test CI-tagged immutable images + local test-built economy plugin jar.
 
 ## License
 
