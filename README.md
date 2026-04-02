@@ -110,9 +110,10 @@ docker compose up -d
 
 Production requirements:
 - Set immutable release tags in `.env` (`AUTH_SERVER_VERSION`, `API_VERSION`, `DASHBOARD_VERSION`, `ECONOMY_VERSION`).
-- Do **not** use `latest`.
+- Set pinned image digests in `.env` (`AUTH_SERVER_DIGEST`, `API_DIGEST`, `DASHBOARD_DIGEST`, `POSTGRES_DIGEST`, `MINECRAFT_IMAGE_DIGEST`).
+- Do **not** use `latest` or unpinned image references.
 - Economy plugin is downloaded from GitHub Releases using `ECONOMY_VERSION` (release artifact path).
-- For maximum immutability, pin image digests (`image: repo:tag@sha256:...`) as a future hardening step.
+- Image references are configured as `repo:tag@sha256:...` so deployments are immutable by default.
 
 ---
 
