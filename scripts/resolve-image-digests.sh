@@ -14,7 +14,7 @@ set -euo pipefail
 #
 # With --write, the script updates those variables in the env file in-place.
 
-ENV_FILE=".env"
+ENV_FILE="../.env"
 WRITE_MODE=0
 
 while (($# > 0)); do

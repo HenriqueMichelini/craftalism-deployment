@@ -1,25 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Starts only shared dependency services for fast local app iteration.
+# Pre-pulls compose images to reduce cold start latency in CI/CD.
 # Usage:
-#   scripts/start-local-deps.sh [up|down|restart]
+#   scripts/prepull-images.sh [production|test]
 
-ACTION="${1:-up}"
+MODE="${1:-production}"
 
-case "$ACTION" in
-  up)
-    docker compose -f docker-compose.yml -f docker-compose.local.yml up -d postgres auth-db-init auth-server api
+case "$MODE" in
+  production)
+    docker compose -f docker-compose.yml pull
     ;;
-  down)
-    docker compose -f docker-compose.yml -f docker-compose.local.yml stop postgres auth-db-init auth-server api
-    ;;
-  restart)
-    docker compose -f docker-compose.yml -f docker-compose.local.yml restart postgres auth-db-init auth-server api
+  test)
+    docker compose -f docker-compose.yml -f docker-compose.test.yml pull
     ;;
   *)
-    echo "Unknown action: $ACTION" >&2
-    echo "Usage: scripts/start-local-deps.sh [up|down|restart]" >&2
+    echo "Unknown mode: $MODE" >&2
+    echo "Usage: scripts/prepull-images.sh [production|test]" >&2
     exit 1
     ;;
 esac

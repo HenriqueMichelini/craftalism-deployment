@@ -38,11 +38,10 @@ clone_or_update_repo "craftalism-dashboard" "${DASHBOARD_BRANCH:-$DEFAULT_BRANCH
 clone_or_update_repo "craftalism-economy" "${ECONOMY_BRANCH:-$DEFAULT_BRANCH}"
 
 if [[ "${CLEAN_PLUGIN_BUILD:-0}" == "1" ]]; then
-  "$ROOT_DIR/scripts/build-economy-plugin.sh" --clean "$PARENT_DIR/craftalism-economy"
+  "$ROOT_DIR/scripts/build-economy-plugin.sh" --clean "$PARENT_DIR/craftalism-economy/java"
 else
-  "$ROOT_DIR/scripts/build-economy-plugin.sh" "$PARENT_DIR/craftalism-economy"
+  "$ROOT_DIR/scripts/build-economy-plugin.sh" "$PARENT_DIR/craftalism-economy/java"
 fi
-
 echo
 echo "[bootstrap] Local development dependencies are ready."
 echo "[bootstrap] Suggested environment variables:"

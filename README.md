@@ -142,9 +142,6 @@ Notes:
 Production uses `docker-compose.yml` only.
 
 ```bash
-# Optional: refresh digest variables to current registry values.
-scripts/resolve-image-digests.sh --env-file .env --write
-
 scripts/prepull-images.sh production
 docker compose up -d
 ```
