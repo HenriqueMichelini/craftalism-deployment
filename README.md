@@ -35,6 +35,27 @@ Set required secrets (`DB_PASSWORD`, `MINECRAFT_CLIENT_SECRET`, `RSA_PRIVATE_KEY
 
 ---
 
+## Quick start (plug-and-play modes)
+
+From repo root, you can now run:
+
+```bash
+./local
+./test
+./prod
+```
+
+What each command does:
+- `./local`: bootstraps local sibling repos, builds local plugin jar, and starts local compose (`docker-compose.yml` + `docker-compose.local.yml`).
+- `./test`: ensures local plugin jar exists, auto-populates CI tag env vars from current git branch/sha if absent, pre-pulls test images, and starts test compose (`docker-compose.yml` + `docker-compose.test.yml`).
+- `./prod`: optionally refreshes pinned image digests into `.env`, pre-pulls production images, then starts production compose (`docker-compose.yml`).
+
+Optional behavior flags:
+- `SKIP_DIGEST_REFRESH=1 ./prod` to skip automatic digest refresh.
+- `CLEAN_PLUGIN_BUILD=1 ./local` to force clean plugin build via bootstrap.
+
+---
+
 ## 1) Local development flow
 
 Use local build contexts for Java/UI services and a locally built Minecraft economy plugin jar.
