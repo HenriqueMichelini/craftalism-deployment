@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT_DIR"
+
+if [[ ! -f .env ]]; then
+  cp env.example .env
+  echo "[test] Created .env from env.example"
+fi
+
+if [[ ! -f "$ROOT_DIR/.local-dev/craftalism-economy.jar" ]]; then
+  echo "[test] Local economy plugin jar not found. Building..."
+  scripts/build-economy-plugin.sh ../craftalism-economy
+fi
+
+BRANCH_NAME="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo local)"
+BRANCH_SLUG="${BRANCH_NAME//\//-}"
+SHORT_SHA="$(git rev-parse --short HEAD 2>/dev/null || echo dev)"
+DEFAULT_TAG="${BRANCH_SLUG}-${SHORT_SHA}"
+
+export AUTH_SERVER_CI_TAG="${AUTH_SERVER_CI_TAG:-$DEFAULT_TAG}"
+export API_CI_TAG="${API_CI_TAG:-$DEFAULT_TAG}"
+export DASHBOARD_CI_TAG="${DASHBOARD_CI_TAG:-$DEFAULT_TAG}"
+export AUTH_SERVER_GIT_SHA="${AUTH_SERVER_GIT_SHA:-$SHORT_SHA}"
+export API_GIT_SHA="${API_GIT_SHA:-$SHORT_SHA}"
+export DASHBOARD_GIT_SHA="${DASHBOARD_GIT_SHA:-$SHORT_SHA}"
+export ECONOMY_GIT_SHA="${ECONOMY_GIT_SHA:-$SHORT_SHA}"
+export ECONOMY_PLUGIN_JAR="${ECONOMY_PLUGIN_JAR:-$ROOT_DIR/.local-dev/craftalism-economy.jar}"
+
+echo "[test] Using CI tags:"
+echo "  AUTH_SERVER_CI_TAG=$AUTH_SERVER_CI_TAG"
+echo "  API_CI_TAG=$API_CI_TAG"
+echo "  DASHBOARD_CI_TAG=$DASHBOARD_CI_TAG"
+
+echo "[test] Pre-pulling test images..."
+scripts/prepull-images.sh test
+
+echo "[test] Starting test stack..."
+docker compose -f docker-compose.yml -f docker-compose.test.yml up -d "$@"

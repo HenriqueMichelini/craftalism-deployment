@@ -2,7 +2,7 @@ services:
   # Default (production) behavior: image tags come from VERSION env vars.
   # Pin these in .env (e.g., API_VERSION=v1.2.3) for reproducible production deploys.
   postgres:
-    image: postgres:18-alpine
+    image: postgres:${POSTGRES_VERSION:-18-alpine}@${POSTGRES_DIGEST:?Set POSTGRES_DIGEST to a pinned sha256 digest}
     container_name: craftalism-postgres
     environment:
       POSTGRES_DB: ${DB_NAME:-craftalism}
@@ -36,7 +36,7 @@ services:
       - craftalism
 
   auth-server:
-    image: ghcr.io/henriquemichelini/craftalism-authorization-server:${AUTH_SERVER_VERSION:?Set AUTH_SERVER_VERSION to an immutable release tag}
+    image: ghcr.io/henriquemichelini/craftalism-authorization-server:${AUTH_SERVER_VERSION:?Set AUTH_SERVER_VERSION to an immutable release tag}@${AUTH_SERVER_DIGEST:?Set AUTH_SERVER_DIGEST to the release image sha256 digest}
     container_name: craftalism-auth-server
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/authserver
@@ -64,7 +64,7 @@ services:
       start_period: 40s
 
   api:
-    image: ghcr.io/henriquemichelini/craftalism-api:${API_VERSION:?Set API_VERSION to an immutable release tag}
+    image: ghcr.io/henriquemichelini/craftalism-api:${API_VERSION:?Set API_VERSION to an immutable release tag}@${API_DIGEST:?Set API_DIGEST to the release image sha256 digest}
     container_name: craftalism-api
     environment:
       SPRING_PROFILES_ACTIVE: docker
@@ -91,7 +91,7 @@ services:
       start_period: 40s
 
   dashboard:
-    image: ghcr.io/henriquemichelini/craftalism-dashboard:${DASHBOARD_VERSION:?Set DASHBOARD_VERSION to an immutable release tag}
+    image: ghcr.io/henriquemichelini/craftalism-dashboard:${DASHBOARD_VERSION:?Set DASHBOARD_VERSION to an immutable release tag}@${DASHBOARD_DIGEST:?Set DASHBOARD_DIGEST to the release image sha256 digest}
     container_name: craftalism-dashboard
     environment:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
@@ -112,7 +112,7 @@ services:
       retries: 3
 
   minecraft:
-    image: itzg/minecraft-server:${MINECRAFT_IMAGE_VERSION:-java21}
+    image: itzg/minecraft-server:${MINECRAFT_IMAGE_VERSION:-java21}@${MINECRAFT_IMAGE_DIGEST:?Set MINECRAFT_IMAGE_DIGEST to a pinned sha256 digest}
     container_name: craftalism-minecraft
     environment:
       EULA: "TRUE"
@@ -127,7 +127,7 @@ services:
       VIEW_DISTANCE: ${MINECRAFT_VIEW_DISTANCE:-10}
       SIMULATION_DISTANCE: ${MINECRAFT_SIMULATION_DISTANCE:-10}
       ENABLE_RCON: "TRUE"
-      RCON_PASSWORD: ${RCON_PASSWORD}
+      RCON_PASSWORD: ${RCON_PASSWORD:?Set RCON_PASSWORD to a strong value}
       RCON_PORT: 25575
       CRAFTALISM_API_URL: http://craftalism-api:8080
       CRAFTALISM_API_KEY: ${MINECRAFT_CLIENT_SECRET}

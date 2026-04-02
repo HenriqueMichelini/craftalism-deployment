@@ -35,6 +35,27 @@ Set required secrets (`DB_PASSWORD`, `MINECRAFT_CLIENT_SECRET`, `RSA_PRIVATE_KEY
 
 ---
 
+## Quick start (plug-and-play modes)
+
+From repo root, you can now run:
+
+```bash
+./local
+./test
+./prod
+```
+
+What each command does:
+- `./local`: bootstraps local sibling repos, builds local plugin jar, and starts local compose (`docker-compose.yml` + `docker-compose.local.yml`).
+- `./test`: ensures local plugin jar exists, auto-populates CI tag env vars from current git branch/sha if absent, pre-pulls test images, and starts test compose (`docker-compose.yml` + `docker-compose.test.yml`).
+- `./prod`: optionally refreshes pinned image digests into `.env`, pre-pulls production images, then starts production compose (`docker-compose.yml`).
+
+Optional behavior flags:
+- `SKIP_DIGEST_REFRESH=1 ./prod` to skip automatic digest refresh.
+- `CLEAN_PLUGIN_BUILD=1 ./local` to force clean plugin build via bootstrap.
+
+---
+
 ## 1) Local development flow
 
 Use local build contexts for Java/UI services and a locally built Minecraft economy plugin jar.
@@ -43,6 +64,12 @@ Use local build contexts for Java/UI services and a locally built Minecraft econ
 
 ```bash
 scripts/build-economy-plugin.sh ../craftalism-economy
+```
+
+For a forced clean rebuild when plugin metadata/dependencies changed:
+
+```bash
+scripts/build-economy-plugin.sh --clean ../craftalism-economy
 ```
 
 This produces:
@@ -64,6 +91,11 @@ Notes:
 - The compose local override builds `auth-server`, `api`, and `dashboard` from local source paths.
 - Minecraft plugin uses local jar mount (`/data/plugins/craftalism-economy.jar`) and does **not** use GitHub Releases in local mode.
 - If you are iterating heavily on one service, direct IDE execution is recommended while keeping dependencies (Postgres/Auth/API) in Compose.
+- For faster local loops, you can boot only shared dependencies:
+
+```bash
+scripts/start-local-deps.sh up
+```
 
 ---
 
@@ -92,6 +124,12 @@ export ECONOMY_PLUGIN_JAR=$PWD/.local-dev/craftalism-economy.jar
 docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
 ```
 
+Optional pre-pull (recommended in CI to reduce cold-start time):
+
+```bash
+scripts/prepull-images.sh test
+```
+
 Notes:
 - Test overrides replace service images with commit-tagged CI images.
 - Test still uses a locally built economy plugin artifact (mounted jar), not release download transport.
@@ -104,15 +142,19 @@ Notes:
 Production uses `docker-compose.yml` only.
 
 ```bash
-docker compose pull
+# Optional: refresh digest variables to current registry values.
+scripts/resolve-image-digests.sh --env-file .env --write
+
+scripts/prepull-images.sh production
 docker compose up -d
 ```
 
 Production requirements:
 - Set immutable release tags in `.env` (`AUTH_SERVER_VERSION`, `API_VERSION`, `DASHBOARD_VERSION`, `ECONOMY_VERSION`).
-- Do **not** use `latest`.
+- Set pinned image digests in `.env` (`AUTH_SERVER_DIGEST`, `API_DIGEST`, `DASHBOARD_DIGEST`, `POSTGRES_DIGEST`, `MINECRAFT_IMAGE_DIGEST`).
+- Do **not** use `latest` or unpinned image references.
 - Economy plugin is downloaded from GitHub Releases using `ECONOMY_VERSION` (release artifact path).
-- For maximum immutability, pin image digests (`image: repo:tag@sha256:...`) as a future hardening step.
+- Image references are configured as `repo:tag@sha256:...` so deployments are immutable by default.
 
 ---
 
