@@ -20,7 +20,13 @@ fi
 pushd "$REPO_DIR" >/dev/null
 ./gradlew clean build
 JAR_PATH="$(ls build/libs/craftalism-economy-*.jar | grep -v -- '-plain\.jar' | head -n 1)"
+JAR_PATH="$(find build/libs -maxdepth 1 -type f -name 'craftalism-economy-*.jar' ! -name '*-plain.jar' | sort | head -n 1)"
 popd >/dev/null
+
+if [[ -z "$JAR_PATH" ]]; then
+  echo "Built jar not found under $REPO_DIR/build/libs" >&2
+  exit 1
+fi
 
 mkdir -p .local-dev
 cp "$REPO_DIR/$JAR_PATH" .local-dev/craftalism-economy.jar
