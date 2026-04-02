@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT_DIR"
+
+if [[ ! -f .env ]]; then
+  cp env.example .env
+  echo "[local] Created .env from env.example"
+fi
+
+echo "[local] Bootstrapping local dependencies and plugin jar..."
+scripts/bootstrap-local-dev.sh
+
+export ECONOMY_PLUGIN_JAR="${ECONOMY_PLUGIN_JAR:-$ROOT_DIR/.local-dev/craftalism-economy.jar}"
+
+echo "[local] Starting local stack..."
+docker compose -f docker-compose.yml -f docker-compose.local.yml up --build "$@"

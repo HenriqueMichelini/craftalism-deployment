@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT_DIR"
+
+if [[ ! -f .env ]]; then
+  cp env.example .env
+  echo "[prod] Created .env from env.example"
+fi
+
+if [[ "${SKIP_DIGEST_REFRESH:-0}" != "1" ]]; then
+  echo "[prod] Refreshing image digests in .env..."
+  scripts/resolve-image-digests.sh --env-file .env --write
+else
+  echo "[prod] Skipping digest refresh (SKIP_DIGEST_REFRESH=1)"
+fi
+
+echo "[prod] Pre-pulling production images..."
+scripts/prepull-images.sh production
+
+echo "[prod] Starting production stack..."
+docker compose up -d "$@"
