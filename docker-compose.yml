@@ -36,7 +36,7 @@ services:
       - craftalism
 
   auth-server:
-    image: ghcr.io/henriquemichelini/craftalism-authorization-server:${AUTH_SERVER_VERSION:?Set AUTH_SERVER_VERSION to an immutable release tag}
+    image: ghcr.io/henriquemichelini/craftalism-authorization-server:${AUTH_SERVER_VERSION:?Set AUTH_SERVER_VERSION to an immutable release tag}@${AUTH_SERVER_DIGEST:?Set AUTH_SERVER_DIGEST to the release image sha256 digest}
     container_name: craftalism-auth-server
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/authserver

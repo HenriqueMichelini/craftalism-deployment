@@ -45,6 +45,12 @@ Use local build contexts for Java/UI services and a locally built Minecraft econ
 scripts/build-economy-plugin.sh ../craftalism-economy
 ```
 
+For a forced clean rebuild when plugin metadata/dependencies changed:
+
+```bash
+scripts/build-economy-plugin.sh --clean ../craftalism-economy
+```
+
 This produces:
 
 - `.local-dev/craftalism-economy.jar`
@@ -64,6 +70,11 @@ Notes:
 - The compose local override builds `auth-server`, `api`, and `dashboard` from local source paths.
 - Minecraft plugin uses local jar mount (`/data/plugins/craftalism-economy.jar`) and does **not** use GitHub Releases in local mode.
 - If you are iterating heavily on one service, direct IDE execution is recommended while keeping dependencies (Postgres/Auth/API) in Compose.
+- For faster local loops, you can boot only shared dependencies:
+
+```bash
+scripts/start-local-deps.sh up
+```
 
 ---
 
@@ -92,6 +103,12 @@ export ECONOMY_PLUGIN_JAR=$PWD/.local-dev/craftalism-economy.jar
 docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
 ```
 
+Optional pre-pull (recommended in CI to reduce cold-start time):
+
+```bash
+scripts/prepull-images.sh test
+```
+
 Notes:
 - Test overrides replace service images with commit-tagged CI images.
 - Test still uses a locally built economy plugin artifact (mounted jar), not release download transport.
@@ -104,7 +121,7 @@ Notes:
 Production uses `docker-compose.yml` only.
 
 ```bash
-docker compose pull
+scripts/prepull-images.sh production
 docker compose up -d
 ```
 

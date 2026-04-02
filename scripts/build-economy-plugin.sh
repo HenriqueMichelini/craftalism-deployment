@@ -3,7 +3,14 @@ set -euo pipefail
 
 # Builds the economy plugin from source and copies the jar to .local-dev.
 # Usage:
-#   scripts/build-economy-plugin.sh [path-to-craftalism-economy-repo]
+#   scripts/build-economy-plugin.sh [--clean] [path-to-craftalism-economy-repo]
+# Defaults to incremental builds for faster local iteration.
+
+DO_CLEAN="${DO_CLEAN:-0}"
+if [[ "${1:-}" == "--clean" ]]; then
+  DO_CLEAN=1
+  shift
+fi
 
 REPO_DIR="${1:-../craftalism-economy}"
 if [[ ! -d "$REPO_DIR" ]]; then
@@ -18,8 +25,11 @@ if [[ ! -f "$REPO_DIR/gradlew" ]]; then
 fi
 
 pushd "$REPO_DIR" >/dev/null
-./gradlew clean build
-JAR_PATH="$(ls build/libs/craftalism-economy-*.jar | grep -v -- '-plain\.jar' | head -n 1)"
+if [[ "$DO_CLEAN" == "1" ]]; then
+  ./gradlew clean build
+else
+  ./gradlew build
+fi
 JAR_PATH="$(find build/libs -maxdepth 1 -type f -name 'craftalism-economy-*.jar' ! -name '*-plain.jar' | sort | head -n 1)"
 popd >/dev/null
 
