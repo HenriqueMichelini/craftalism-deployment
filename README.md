@@ -41,18 +41,26 @@ From repo root, you can now run:
 
 ```bash
 ./local
+./local down
 ./test
+./test down
 ./prod
+./prod down
 ```
 
 What each command does:
 - `./local`: bootstraps local sibling repos, builds local plugin jar, and starts local compose (`docker-compose.yml` + `docker-compose.local.yml`).
-- `./test`: ensures local plugin jar exists, auto-populates CI tag env vars from current git branch/sha if absent, pre-pulls test images, and starts test compose (`docker-compose.yml` + `docker-compose.test.yml`).
+- `./local down`: stops/removes the local stack with the same compose file set.
+- `./test`: ensures local plugin jar exists, auto-populates CI tag env vars from current git branch/sha if absent, provides safe defaults for base-compose required vars, resolves/pulls base images, and for app services falls back to local `*:local` images when remote CI tags are unavailable.
+- `./test down`: stops/removes the test stack with test compose overrides.
 - `./prod`: optionally refreshes pinned image digests into `.env`, pre-pulls production images, then starts production compose (`docker-compose.yml`).
+- `./prod down`: stops/removes the production stack.
 
 Optional behavior flags:
 - `SKIP_DIGEST_REFRESH=1 ./prod` to skip automatic digest refresh.
 - `CLEAN_PLUGIN_BUILD=1 ./local` to force clean plugin build via bootstrap.
+- `LOCAL_BUILD_RETRIES=5 ./local` to retry transient local docker builds (default: 3 attempts).
+- `scripts/resolve-image-digests.sh --env-file .env --mode test --write` to resolve only digests needed by `./test`.
 
 ---
 
@@ -83,6 +91,11 @@ export AUTH_SERVER_BUILD_CONTEXT=../craftalism-authorization-server
 export API_BUILD_CONTEXT=../craftalism-api
 export DASHBOARD_BUILD_CONTEXT=../craftalism-dashboard
 export ECONOMY_PLUGIN_JAR=$PWD/.local-dev/craftalism-economy.jar
+# Optional if your repos use non-standard Dockerfile locations:
+# export AUTH_SERVER_DOCKERFILE=java/Dockerfile
+# export API_DOCKERFILE=java/Dockerfile
+# export DASHBOARD_DOCKERFILE=react/Dockerfile
+
 
 docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
 ```

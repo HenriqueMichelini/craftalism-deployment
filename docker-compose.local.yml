@@ -1,22 +1,22 @@
 services:
   # Local dev prefers source build contexts. Point *_BUILD_CONTEXT env vars
-  # at local checkouts, for example ../craftalism-api.
+  # at service source folders (java/react), for example ../craftalism-api/java.
   auth-server:
     image: craftalism-authorization-server:local
     build:
-      context: ${AUTH_SERVER_BUILD_CONTEXT:-../craftalism-authorization-server}
+      context: ${AUTH_SERVER_BUILD_CONTEXT:-../craftalism-authorization-server/java}
       dockerfile: ${AUTH_SERVER_DOCKERFILE:-Dockerfile}
 
   api:
     image: craftalism-api:local
     build:
-      context: ${API_BUILD_CONTEXT:-../craftalism-api}
+      context: ${API_BUILD_CONTEXT:-../craftalism-api/java}
       dockerfile: ${API_DOCKERFILE:-Dockerfile}
 
   dashboard:
     image: craftalism-dashboard:local
     build:
-      context: ${DASHBOARD_BUILD_CONTEXT:-../craftalism-dashboard}
+      context: ${DASHBOARD_BUILD_CONTEXT:-../craftalism-dashboard/react}
       dockerfile: ${DASHBOARD_DOCKERFILE:-Dockerfile}
 
   minecraft:

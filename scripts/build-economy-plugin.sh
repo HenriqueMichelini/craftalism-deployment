@@ -12,7 +12,7 @@ if [[ "${1:-}" == "--clean" ]]; then
   shift
 fi
 
-REPO_DIR="${1:-../craftalism-economy}"
+REPO_DIR="${1:-../craftalism-economy/java}"
 if [[ ! -d "$REPO_DIR" ]]; then
   echo "Repository not found: $REPO_DIR" >&2
   echo "Clone it next to this repo or pass an explicit path." >&2

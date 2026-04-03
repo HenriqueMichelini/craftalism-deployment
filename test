@@ -4,20 +4,40 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR"
 
+ACTIONS_HELP="Usage: ./test [up|down]"
+ACTION="${1:-up}"
+if [[ "$ACTION" != "up" && "$ACTION" != "down" ]]; then
+  echo "$ACTIONS_HELP" >&2
+  exit 1
+fi
+if (($# > 0)); then
+  shift
+fi
+
 if [[ ! -f .env ]]; then
   cp env.example .env
   echo "[test] Created .env from env.example"
 fi
 
-if [[ ! -f "$ROOT_DIR/.local-dev/craftalism-economy.jar" ]]; then
-  echo "[test] Local economy plugin jar not found. Building..."
-  scripts/build-economy-plugin.sh ../craftalism-economy
-fi
+read_env_var() {
+  local key="$1"
+  awk -F= -v key="$key" '$1 == key {sub(/^[^=]*=/, ""); print; exit}' .env
+}
 
 BRANCH_NAME="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo local)"
 BRANCH_SLUG="${BRANCH_NAME//\//-}"
 SHORT_SHA="$(git rev-parse --short HEAD 2>/dev/null || echo dev)"
 DEFAULT_TAG="${BRANCH_SLUG}-${SHORT_SHA}"
+DUMMY_DIGEST="sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+for key in AUTH_SERVER_VERSION API_VERSION DASHBOARD_VERSION ECONOMY_VERSION AUTH_SERVER_DIGEST API_DIGEST DASHBOARD_DIGEST POSTGRES_VERSION POSTGRES_DIGEST MINECRAFT_IMAGE_VERSION MINECRAFT_IMAGE_DIGEST RCON_PASSWORD; do
+  if [[ -z "${!key:-}" ]]; then
+    value="$(read_env_var "$key" || true)"
+    if [[ -n "$value" ]]; then
+      export "$key=$value"
+    fi
+  fi
+done
 
 export AUTH_SERVER_CI_TAG="${AUTH_SERVER_CI_TAG:-$DEFAULT_TAG}"
 export API_CI_TAG="${API_CI_TAG:-$DEFAULT_TAG}"
@@ -28,13 +48,76 @@ export DASHBOARD_GIT_SHA="${DASHBOARD_GIT_SHA:-$SHORT_SHA}"
 export ECONOMY_GIT_SHA="${ECONOMY_GIT_SHA:-$SHORT_SHA}"
 export ECONOMY_PLUGIN_JAR="${ECONOMY_PLUGIN_JAR:-$ROOT_DIR/.local-dev/craftalism-economy.jar}"
 
+# Base compose still validates these required vars even when test overrides images.
+export AUTH_SERVER_VERSION="${AUTH_SERVER_VERSION:-test}"
+export API_VERSION="${API_VERSION:-test}"
+export DASHBOARD_VERSION="${DASHBOARD_VERSION:-test}"
+export ECONOMY_VERSION="${ECONOMY_VERSION:-test}"
+export AUTH_SERVER_DIGEST="${AUTH_SERVER_DIGEST:-$DUMMY_DIGEST}"
+export API_DIGEST="${API_DIGEST:-$DUMMY_DIGEST}"
+export DASHBOARD_DIGEST="${DASHBOARD_DIGEST:-$DUMMY_DIGEST}"
+export POSTGRES_VERSION="${POSTGRES_VERSION:-18-alpine}"
+export MINECRAFT_IMAGE_VERSION="${MINECRAFT_IMAGE_VERSION:-java21}"
+export POSTGRES_DIGEST="${POSTGRES_DIGEST:-$DUMMY_DIGEST}"
+export MINECRAFT_IMAGE_DIGEST="${MINECRAFT_IMAGE_DIGEST:-$DUMMY_DIGEST}"
+export RCON_PASSWORD="${RCON_PASSWORD:-test-rcon-password}"
+
+if [[ "$ACTION" == "down" ]]; then
+  echo "[test] Stopping test stack..."
+  docker compose -f docker-compose.yml -f docker-compose.test.yml down "$@"
+  exit 0
+fi
+
+if [[ ! -f "$ROOT_DIR/.local-dev/craftalism-economy.jar" ]]; then
+  echo "[test] Local economy plugin jar not found. Building..."
+  scripts/build-economy-plugin.sh ../craftalism-economy
+fi
+
 echo "[test] Using CI tags:"
 echo "  AUTH_SERVER_CI_TAG=$AUTH_SERVER_CI_TAG"
 echo "  API_CI_TAG=$API_CI_TAG"
 echo "  DASHBOARD_CI_TAG=$DASHBOARD_CI_TAG"
 
-echo "[test] Pre-pulling test images..."
-scripts/prepull-images.sh test
+if [[ "${SKIP_TEST_DIGEST_REFRESH:-0}" != "1" ]]; then
+  echo "[test] Refreshing test-required digests in .env..."
+  scripts/resolve-image-digests.sh --env-file .env --mode test --write
+  export POSTGRES_DIGEST="$(read_env_var POSTGRES_DIGEST)"
+  export MINECRAFT_IMAGE_DIGEST="$(read_env_var MINECRAFT_IMAGE_DIGEST)"
+  export POSTGRES_DIGEST="${POSTGRES_DIGEST:-$DUMMY_DIGEST}"
+  export MINECRAFT_IMAGE_DIGEST="${MINECRAFT_IMAGE_DIGEST:-$DUMMY_DIGEST}"
+else
+  echo "[test] Skipping digest refresh (SKIP_TEST_DIGEST_REFRESH=1)"
+fi
+
+ensure_test_image() {
+  local service_name="$1"
+  local local_image="$2"
+  local remote_image="$3"
+
+  if docker pull "$remote_image" >/dev/null 2>&1; then
+    echo "[test] Pulled ${service_name} image: ${remote_image}"
+    return 0
+  fi
+
+  if docker image inspect "$local_image" >/dev/null 2>&1; then
+    docker tag "$local_image" "$remote_image"
+    echo "[test] Using local fallback image for ${service_name}: ${local_image} -> ${remote_image}"
+    return 0
+  fi
+
+  echo "[test] Could not pull ${remote_image} and no local fallback image ${local_image} exists." >&2
+  echo "[test] Set ${service_name^^}_CI_TAG to an existing registry tag or run ./local first." >&2
+  exit 1
+}
+
+echo "[test] Pulling base images..."
+docker pull "postgres:${POSTGRES_VERSION}@${POSTGRES_DIGEST}" >/dev/null
+docker pull "itzg/minecraft-server:${MINECRAFT_IMAGE_VERSION}@${MINECRAFT_IMAGE_DIGEST}" >/dev/null
+
+echo "[test] Resolving app images (registry or local fallback)..."
+ensure_test_image "auth_server" "craftalism-authorization-server:local" "ghcr.io/henriquemichelini/craftalism-authorization-server:${AUTH_SERVER_CI_TAG}"
+ensure_test_image "api" "craftalism-api:local" "ghcr.io/henriquemichelini/craftalism-api:${API_CI_TAG}"
+ensure_test_image "dashboard" "craftalism-dashboard:local" "ghcr.io/henriquemichelini/craftalism-dashboard:${DASHBOARD_CI_TAG}"
 
 echo "[test] Starting test stack..."
 docker compose -f docker-compose.yml -f docker-compose.test.yml up -d "$@"

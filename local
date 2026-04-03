@@ -4,15 +4,82 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR"
 
+ACTIONS_HELP="Usage: ./local [up|down]"
+ACTION="${1:-up}"
+if [[ "$ACTION" != "up" && "$ACTION" != "down" ]]; then
+  echo "$ACTIONS_HELP" >&2
+  exit 1
+fi
+if (($# > 0)); then
+  shift
+fi
+
+read_env_var() {
+  local key="$1"
+  awk -F= -v key="$key" '$1 == key {sub(/^[^=]*=/, ""); print; exit}' .env
+}
+
 if [[ ! -f .env ]]; then
   cp env.example .env
   echo "[local] Created .env from env.example"
 fi
 
-echo "[local] Bootstrapping local dependencies and plugin jar..."
-scripts/bootstrap-local-dev.sh
+# Base compose validates these vars even in local override mode.
+DUMMY_DIGEST="sha256:0000000000000000000000000000000000000000000000000000000000000000"
+for key in AUTH_SERVER_VERSION API_VERSION DASHBOARD_VERSION ECONOMY_VERSION AUTH_SERVER_DIGEST API_DIGEST DASHBOARD_DIGEST POSTGRES_VERSION POSTGRES_DIGEST MINECRAFT_IMAGE_VERSION MINECRAFT_IMAGE_DIGEST RCON_PASSWORD; do
+  if [[ -z "${!key:-}" ]]; then
+    value="$(read_env_var "$key" || true)"
+    if [[ -n "$value" ]]; then
+      export "$key=$value"
+    fi
+  fi
+done
+
+export AUTH_SERVER_VERSION="${AUTH_SERVER_VERSION:-local}"
+export API_VERSION="${API_VERSION:-local}"
+export DASHBOARD_VERSION="${DASHBOARD_VERSION:-local}"
+export ECONOMY_VERSION="${ECONOMY_VERSION:-local}"
+export AUTH_SERVER_DIGEST="${AUTH_SERVER_DIGEST:-$DUMMY_DIGEST}"
+export API_DIGEST="${API_DIGEST:-$DUMMY_DIGEST}"
+export DASHBOARD_DIGEST="${DASHBOARD_DIGEST:-$DUMMY_DIGEST}"
+export POSTGRES_VERSION="${POSTGRES_VERSION:-18-alpine}"
+export POSTGRES_DIGEST="${POSTGRES_DIGEST:-$DUMMY_DIGEST}"
+export MINECRAFT_IMAGE_VERSION="${MINECRAFT_IMAGE_VERSION:-java21}"
+export MINECRAFT_IMAGE_DIGEST="${MINECRAFT_IMAGE_DIGEST:-$DUMMY_DIGEST}"
+export RCON_PASSWORD="${RCON_PASSWORD:-local-rcon-password}"
 
 export ECONOMY_PLUGIN_JAR="${ECONOMY_PLUGIN_JAR:-$ROOT_DIR/.local-dev/craftalism-economy.jar}"
 
+if [[ "$ACTION" == "down" ]]; then
+  echo "[local] Stopping local stack..."
+  docker compose -f docker-compose.yml -f docker-compose.local.yml down "$@"
+  exit 0
+fi
+
+echo "[local] Bootstrapping local dependencies and plugin jar..."
+scripts/bootstrap-local-dev.sh
+
+run_local_up() {
+  local max_attempts="${LOCAL_BUILD_RETRIES:-3}"
+  local delay_seconds="${LOCAL_BUILD_RETRY_DELAY_SECONDS:-5}"
+  local attempt=1
+
+  while true; do
+    echo "[local] Starting local stack (attempt ${attempt}/${max_attempts})..."
+    if docker compose -f docker-compose.yml -f docker-compose.local.yml up --build "$@"; then
+      return 0
+    fi
+
+    if (( attempt >= max_attempts )); then
+      echo "[local] Failed after ${max_attempts} attempts." >&2
+      return 1
+    fi
+
+    echo "[local] Build/start failed. Retrying in ${delay_seconds}s..." >&2
+    sleep "$delay_seconds"
+    attempt=$((attempt + 1))
+  done
+}
+
 echo "[local] Starting local stack..."
-docker compose -f docker-compose.yml -f docker-compose.local.yml up --build "$@"
+run_local_up "$@"
