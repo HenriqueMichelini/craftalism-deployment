@@ -42,6 +42,7 @@ From repo root, you can now run:
 ```bash
 ./local
 ./local down
+./local hot dashboard
 ./test
 ./test down
 ./prod
@@ -51,6 +52,7 @@ From repo root, you can now run:
 What each command does:
 - `./local`: bootstraps local sibling repos, builds local plugin jar, and starts local compose (`docker-compose.yml` + `docker-compose.local.yml`).
 - `./local down`: stops/removes the local stack with the same compose file set.
+- `./local hot <service>`: rebuilds/restarts only one local service (for example `./local hot dashboard`) without restarting the full stack.
 - `./test`: ensures local plugin jar exists, auto-populates CI tag env vars from current git branch/sha if absent, provides safe defaults for base-compose required vars, resolves/pulls base images, and for app services falls back to local `*:local` images when remote CI tags are unavailable.
 - `./test down`: stops/removes the test stack with test compose overrides.
 - `./prod`: optionally refreshes pinned image digests into `.env`, pre-pulls production images, then starts production compose (`docker-compose.yml`).

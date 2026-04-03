@@ -4,13 +4,24 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR"
 
-ACTIONS_HELP="Usage: ./local [up|down]"
+ACTIONS_HELP="Usage: ./local [up|down|hot <service>]"
 ACTION="${1:-up}"
-if [[ "$ACTION" != "up" && "$ACTION" != "down" ]]; then
+if [[ "$ACTION" != "up" && "$ACTION" != "down" && "$ACTION" != "hot" ]]; then
   echo "$ACTIONS_HELP" >&2
   exit 1
 fi
 if (($# > 0)); then
+  shift
+fi
+
+HOT_SERVICE=""
+if [[ "$ACTION" == "hot" ]]; then
+  HOT_SERVICE="${1:-}"
+  if [[ -z "$HOT_SERVICE" ]]; then
+    echo "[local] Missing service name for hot action." >&2
+    echo "$ACTIONS_HELP" >&2
+    exit 1
+  fi
   shift
 fi
 
@@ -53,6 +64,12 @@ export ECONOMY_PLUGIN_JAR="${ECONOMY_PLUGIN_JAR:-$ROOT_DIR/.local-dev/craftalism
 if [[ "$ACTION" == "down" ]]; then
   echo "[local] Stopping local stack..."
   docker compose -f docker-compose.yml -f docker-compose.local.yml down "$@"
+  exit 0
+fi
+
+if [[ "$ACTION" == "hot" ]]; then
+  echo "[local] Hot-starting only service: $HOT_SERVICE"
+  docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build --no-deps "$HOT_SERVICE" "$@"
   exit 0
 fi
 
