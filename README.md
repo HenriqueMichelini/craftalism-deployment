@@ -33,6 +33,22 @@ cp env.example .env
 
 Set required secrets (`DB_PASSWORD`, `MINECRAFT_CLIENT_SECRET`, `RSA_PRIVATE_KEY`, `RSA_PUBLIC_KEY`, etc.) in `.env`.
 
+### Path assumptions (local development)
+
+This deployment repository expects sibling checkouts for local build contexts:
+
+```text
+<parent-dir>/
+  craftalism-deployment/                  # this repository
+  craftalism-authorization-server/
+  craftalism-api/
+  craftalism-dashboard/
+  craftalism-economy/
+    java/
+```
+
+If your layout differs, set `*_BUILD_CONTEXT`, `*_DOCKERFILE`, and `ECONOMY_PLUGIN_JAR` explicitly in `.env` (or exported environment variables).
+
 ---
 
 ## Quick start (plug-and-play modes)
