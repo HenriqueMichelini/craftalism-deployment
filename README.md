@@ -73,13 +73,13 @@ Use local build contexts for Java/UI services and a locally built Minecraft econ
 ### Build the economy plugin locally
 
 ```bash
-scripts/build-economy-plugin.sh ../craftalism-economy
+scripts/build-economy-plugin.sh ../craftalism-economy/java
 ```
 
 For a forced clean rebuild when plugin metadata/dependencies changed:
 
 ```bash
-scripts/build-economy-plugin.sh --clean ../craftalism-economy
+scripts/build-economy-plugin.sh --clean ../craftalism-economy/java
 ```
 
 This produces:
@@ -106,10 +106,11 @@ Notes:
 - The compose local override builds `auth-server`, `api`, and `dashboard` from local source paths.
 - Minecraft plugin uses local jar mount (`/data/plugins/craftalism-economy.jar`) and does **not** use GitHub Releases in local mode.
 - If you are iterating heavily on one service, direct IDE execution is recommended while keeping dependencies (Postgres/Auth/API) in Compose.
-- For faster local loops, you can boot only shared dependencies:
+- For faster local loops, you can boot only shared dependencies (Postgres/Auth/API):
 
 ```bash
 scripts/start-local-deps.sh up
+scripts/start-local-deps.sh down
 ```
 
 ---
