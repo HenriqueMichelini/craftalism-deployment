@@ -31,7 +31,7 @@ Docker Compose orchestration for the Craftalism platform with **explicitly separ
 cp env.example .env
 ```
 
-Set required secrets (`DB_PASSWORD`, `MINECRAFT_CLIENT_SECRET`, `RSA_PRIVATE_KEY`, `RSA_PUBLIC_KEY`, etc.) in `.env`.
+Set required secrets and issuer config (`DB_PASSWORD`, `MINECRAFT_CLIENT_SECRET`, `RSA_PRIVATE_KEY`, `RSA_PUBLIC_KEY`, `AUTH_ISSUER_URI`, etc.) in `.env`.
 
 ### Path assumptions (local development)
 
@@ -139,7 +139,7 @@ Staging uses CI-built immutable images tagged by branch + short SHA, for example
 - `craftalism-authorization-server:main-a1b2c3d`
 - `craftalism-dashboard:main-a1b2c3d`
 
-The workflow `.github/workflows/build-staging-images.yml` builds and pushes those tags on each push to `main` or `feature/**`.
+The workflow `.github/workflows/build-staging-images.yml` first validates deployment wiring (script syntax + compose interpolation checks) and then builds/pushes those tags on each push to `main` or `feature/**`.
 
 ### Run test stack
 
@@ -184,6 +184,7 @@ Production requirements:
 - Do **not** use `latest` or unpinned image references.
 - Economy plugin is downloaded from GitHub Releases using `ECONOMY_VERSION` (release artifact path).
 - Image references are configured as `repo:tag@sha256:...` so deployments are immutable by default.
+- `./prod up` fails fast and prints missing variable names when required production configuration is not set.
 
 ---
 

@@ -16,7 +16,121 @@ env:
   OWNER: henriquemichelini
 
 jobs:
+  validate-deployment-wiring:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout deployment repo
+        uses: actions/checkout@v4
+
+      - name: Validate script syntax
+        shell: bash
+        run: |
+          bash -n local test prod scripts/*.sh
+
+      - name: Validate production compose interpolation
+        shell: bash
+        run: |
+          docker compose --env-file env.example -f docker-compose.yml config >/tmp/compose-prod.out
+
+      - name: Validate local compose interpolation
+        shell: bash
+        run: |
+          AUTH_SERVER_VERSION=local \
+          API_VERSION=local \
+          DASHBOARD_VERSION=local \
+          ECONOMY_VERSION=local \
+          AUTH_SERVER_DIGEST=sha256:0000000000000000000000000000000000000000000000000000000000000000 \
+          API_DIGEST=sha256:0000000000000000000000000000000000000000000000000000000000000000 \
+          DASHBOARD_DIGEST=sha256:0000000000000000000000000000000000000000000000000000000000000000 \
+          POSTGRES_VERSION=18-alpine \
+          POSTGRES_DIGEST=sha256:0000000000000000000000000000000000000000000000000000000000000000 \
+          MINECRAFT_IMAGE_VERSION=java21 \
+          MINECRAFT_IMAGE_DIGEST=sha256:0000000000000000000000000000000000000000000000000000000000000000 \
+          AUTH_ISSUER_URI=http://craftalism-auth-server:9000 \
+          DB_USER=craftalism \
+          DB_PASSWORD=placeholder \
+          MINECRAFT_CLIENT_SECRET=placeholder \
+          RSA_PRIVATE_KEY=placeholder \
+          RSA_PUBLIC_KEY=placeholder \
+          RCON_PASSWORD=placeholder \
+          ECONOMY_PLUGIN_JAR=/tmp/craftalism-economy.jar \
+          docker compose -f docker-compose.yml -f docker-compose.local.yml config >/tmp/compose-local.out
+
+      - name: Validate test compose interpolation
+        shell: bash
+        run: |
+          AUTH_SERVER_VERSION=test \
+          API_VERSION=test \
+          DASHBOARD_VERSION=test \
+          ECONOMY_VERSION=test \
+          AUTH_SERVER_DIGEST=sha256:0000000000000000000000000000000000000000000000000000000000000000 \
+          API_DIGEST=sha256:0000000000000000000000000000000000000000000000000000000000000000 \
+          DASHBOARD_DIGEST=sha256:0000000000000000000000000000000000000000000000000000000000000000 \
+          POSTGRES_VERSION=18-alpine \
+          POSTGRES_DIGEST=sha256:0000000000000000000000000000000000000000000000000000000000000000 \
+          MINECRAFT_IMAGE_VERSION=java21 \
+          MINECRAFT_IMAGE_DIGEST=sha256:0000000000000000000000000000000000000000000000000000000000000000 \
+          AUTH_SERVER_CI_TAG=main-a1b2c3d \
+          API_CI_TAG=main-a1b2c3d \
+          DASHBOARD_CI_TAG=main-a1b2c3d \
+          AUTH_ISSUER_URI=http://craftalism-auth-server:9000 \
+          DB_USER=craftalism \
+          DB_PASSWORD=placeholder \
+          MINECRAFT_CLIENT_SECRET=placeholder \
+          RSA_PRIVATE_KEY=placeholder \
+          RSA_PUBLIC_KEY=placeholder \
+          RCON_PASSWORD=placeholder \
+          ECONOMY_PLUGIN_JAR=/tmp/craftalism-economy.jar \
+          docker compose -f docker-compose.yml -f docker-compose.test.yml config >/tmp/compose-test.out
+
+      - name: Runtime smoke test (postgres health)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cleanup() {
+            docker compose -f docker-compose.yml down -v --remove-orphans || true
+          }
+          trap cleanup EXIT
+
+          docker pull postgres:18-alpine >/dev/null
+          POSTGRES_DIGEST="$(docker image inspect --format '{{index .RepoDigests 0}}' postgres:18-alpine | sed 's/.*@//')"
+
+          AUTH_SERVER_VERSION=smoke \
+          API_VERSION=smoke \
+          DASHBOARD_VERSION=smoke \
+          ECONOMY_VERSION=smoke \
+          AUTH_SERVER_DIGEST=sha256:0000000000000000000000000000000000000000000000000000000000000000 \
+          API_DIGEST=sha256:0000000000000000000000000000000000000000000000000000000000000000 \
+          DASHBOARD_DIGEST=sha256:0000000000000000000000000000000000000000000000000000000000000000 \
+          POSTGRES_VERSION=18-alpine \
+          POSTGRES_DIGEST="$POSTGRES_DIGEST" \
+          MINECRAFT_IMAGE_VERSION=java21 \
+          MINECRAFT_IMAGE_DIGEST=sha256:0000000000000000000000000000000000000000000000000000000000000000 \
+          AUTH_ISSUER_URI=http://craftalism-auth-server:9000 \
+          DB_USER=craftalism \
+          DB_PASSWORD=placeholder \
+          MINECRAFT_CLIENT_SECRET=placeholder \
+          RSA_PRIVATE_KEY=placeholder \
+          RSA_PUBLIC_KEY=placeholder \
+          RCON_PASSWORD=placeholder \
+          docker compose -f docker-compose.yml up -d postgres
+
+          for i in {1..30}; do
+            status="$(docker inspect --format '{{.State.Health.Status}}' craftalism-postgres 2>/dev/null || echo missing)"
+            if [[ "$status" == "healthy" ]]; then
+              echo "Postgres is healthy."
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "Postgres did not become healthy within timeout." >&2
+          docker compose -f docker-compose.yml ps
+          exit 1
+
   build-service-images:
+    needs: validate-deployment-wiring
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
