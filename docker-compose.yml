@@ -20,7 +20,7 @@ services:
       retries: 5
 
   auth-db-init:
-    image: postgres:18-alpine
+    image: postgres:${POSTGRES_VERSION:-18-alpine}@${POSTGRES_DIGEST:?Set POSTGRES_DIGEST to a pinned sha256 digest}
     restart: "no"
     environment:
       DB_USER: ${DB_USER:-craftalism}
@@ -46,7 +46,7 @@ services:
       RSA_PUBLIC_KEY: ${RSA_PUBLIC_KEY}
       MINECRAFT_CLIENT_ID: ${MINECRAFT_CLIENT_ID:-minecraft-server}
       MINECRAFT_CLIENT_SECRET: ${MINECRAFT_CLIENT_SECRET}
-      AUTH_ISSUER_URI: ${AUTH_ISSUER_URI:-http://localhost:9000}
+      AUTH_ISSUER_URI: ${AUTH_ISSUER_URI:?Set AUTH_ISSUER_URI to the canonical auth issuer URL}
     ports:
       - "${AUTH_SERVER_PORT:-9000}:9000"
     depends_on:
@@ -74,7 +74,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-craftalism}
       SPRING_DATASOURCE_USERNAME: ${DB_USER:-craftalism}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
-      AUTH_ISSUER_URI: ${AUTH_ISSUER_URI:-http://craftalism-auth-server:9000}
+      AUTH_ISSUER_URI: ${AUTH_ISSUER_URI:?Set AUTH_ISSUER_URI to the canonical auth issuer URL}
     ports:
       - "${API_PORT:-3000}:8080"
     depends_on:
@@ -148,7 +148,7 @@ services:
       RCON_PORT: 25575
       CRAFTALISM_API_URL: http://craftalism-api:8080
       CRAFTALISM_API_KEY: ${MINECRAFT_CLIENT_SECRET}
-      AUTH_ISSUER_URI: ${AUTH_ISSUER_URI:-http://craftalism-auth-server:9000}
+      AUTH_ISSUER_URI: ${AUTH_ISSUER_URI:?Set AUTH_ISSUER_URI to the canonical auth issuer URL}
       PLUGINS: >-
         https://github.com/HenriqueMichelini/craftalism-economy/releases/download/v${ECONOMY_VERSION:?Set ECONOMY_VERSION to a released plugin version}/craftalism-economy-${ECONOMY_VERSION}.jar
     volumes:
