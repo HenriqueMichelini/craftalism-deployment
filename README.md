@@ -184,6 +184,7 @@ Production requirements:
 - Do **not** use `latest` or unpinned image references.
 - Economy plugin is downloaded from GitHub Releases using `ECONOMY_VERSION` (release artifact path).
 - Image references are configured as `repo:tag@sha256:...` so deployments are immutable by default.
+- `./prod up` fails fast and prints missing variable names when required production configuration is not set.
 
 ---
 
