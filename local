@@ -87,16 +87,25 @@ run_local_up() {
 
   while true; do
     echo "[local] Starting local stack (attempt ${attempt}/${max_attempts})..."
+    local compose_status=0
     if docker compose -f docker-compose.yml -f docker-compose.local.yml up --build "$@"; then
       return 0
+    fi
+    compose_status=$?
+
+    # If services are still running, user most likely detached/interrupted logs.
+    # Do not retry `up`, because that can restart containers unexpectedly.
+    if docker compose -f docker-compose.yml -f docker-compose.local.yml ps --status running -q | grep -q .; then
+      echo "[local] Compose exited with status ${compose_status}, but stack is still running. Skipping retry." >&2
+      return "$compose_status"
     fi
 
     if (( attempt >= max_attempts )); then
       echo "[local] Failed after ${max_attempts} attempts." >&2
-      return 1
+      return "$compose_status"
     fi
 
-    echo "[local] Build/start failed. Retrying in ${delay_seconds}s..." >&2
+    echo "[local] Build/start failed (exit ${compose_status}). Retrying in ${delay_seconds}s..." >&2
     sleep "$delay_seconds"
     attempt=$((attempt + 1))
   done
