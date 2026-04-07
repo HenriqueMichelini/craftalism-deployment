@@ -19,10 +19,31 @@ services:
       context: ${DASHBOARD_BUILD_CONTEXT:-../craftalism-dashboard/react}
       dockerfile: ${DASHBOARD_DOCKERFILE:-Dockerfile}
 
+  minecraft-init:
+    # Local-only one-shot init that prepares the named volume permissions and plugin jar.
+    image: itzg/minecraft-server:${MINECRAFT_IMAGE_VERSION:-java21}@${MINECRAFT_IMAGE_DIGEST:?Set MINECRAFT_IMAGE_DIGEST to a pinned sha256 digest}
+    user: "0:0"
+    restart: "no"
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        mkdir -p /data/plugins
+        install -m 0644 -o minecraft -g minecraft /bootstrap/craftalism-economy.jar /data/plugins/craftalism-economy.jar
+        chown minecraft:minecraft /data/plugins
+        chmod 775 /data/plugins
+    volumes:
+      - minecraft_data:/data
+      - ${ECONOMY_PLUGIN_JAR:?Set ECONOMY_PLUGIN_JAR to a locally built craftalism-economy jar}:/bootstrap/craftalism-economy.jar:ro
+
   minecraft:
     # Dev should use a locally built plugin jar instead of release downloads.
     environment:
       PLUGINS: ""
+    depends_on:
+      api:
+        condition: service_healthy
+      minecraft-init:
+        condition: service_completed_successfully
     volumes:
       - minecraft_data:/data
-      - ${ECONOMY_PLUGIN_JAR:?Set ECONOMY_PLUGIN_JAR to a locally built craftalism-economy jar}:/data/plugins/craftalism-economy.jar:ro
