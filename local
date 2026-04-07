@@ -69,6 +69,10 @@ fi
 
 if [[ "$ACTION" == "hot" ]]; then
   echo "[local] Hot-starting only service: $HOT_SERVICE"
+  if [[ "$HOT_SERVICE" == "minecraft" ]]; then
+    echo "[local] Running minecraft local init..."
+    docker compose -f docker-compose.yml -f docker-compose.local.yml up --build --no-deps minecraft-init
+  fi
   docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build --no-deps "$HOT_SERVICE" "$@"
   exit 0
 fi
