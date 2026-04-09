@@ -95,14 +95,14 @@ jobs:
       matrix:
         include:
           - service: craftalism-api
-            context: https://github.com/HenriqueMichelini/craftalism-api.git#${{ github.ref_name }}
-            file: java/Dockerfile
+            context: https://github.com/HenriqueMichelini/craftalism-api.git#${{ github.ref_name }}:java
+            file: Dockerfile
           - service: craftalism-authorization-server
-            context: https://github.com/HenriqueMichelini/craftalism-authorization-server.git#${{ github.ref_name }}
-            file: java/Dockerfile
+            context: https://github.com/HenriqueMichelini/craftalism-authorization-server.git#${{ github.ref_name }}:java
+            file: Dockerfile
           - service: craftalism-dashboard
-            context: https://github.com/HenriqueMichelini/craftalism-dashboard.git#${{ github.ref_name }}
-            file: react/Dockerfile
+            context: https://github.com/HenriqueMichelini/craftalism-dashboard.git#${{ github.ref_name }}:react
+            file: Dockerfile
 
     steps:
       - name: Checkout deployment repo
