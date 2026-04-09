@@ -56,10 +56,50 @@ if [[ -z "$ENV_FILE" || ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
-set -a
-# shellcheck disable=SC1090
-source "$ENV_FILE"
-set +a
+read_env_var() {
+  local key="$1"
+  awk -F= -v key="$key" '
+    $0 ~ /^[[:space:]]*#/ { next }
+    $1 == key {
+      sub(/^[^=]*=/, "")
+      print
+      exit
+    }
+  ' "$ENV_FILE"
+}
+
+load_env_var() {
+  local key="$1"
+  local value=""
+
+  if [[ -n "${!key:-}" ]]; then
+    return 0
+  fi
+
+  value="$(read_env_var "$key")"
+  if [[ -n "$value" ]]; then
+    export "$key=$value"
+  fi
+}
+
+for key in \
+  POSTGRES_VERSION \
+  MINECRAFT_IMAGE_VERSION \
+  CADDY_VERSION \
+  AUTH_SERVER_VERSION \
+  API_VERSION \
+  DASHBOARD_VERSION \
+  AUTH_SERVER_CI_TAG \
+  API_CI_TAG \
+  DASHBOARD_CI_TAG \
+  CADDY_DIGEST \
+  AUTH_SERVER_DIGEST \
+  API_DIGEST \
+  DASHBOARD_DIGEST \
+  POSTGRES_DIGEST \
+  MINECRAFT_IMAGE_DIGEST; do
+  load_env_var "$key"
+done
 
 require_var() {
   local var_name="$1"

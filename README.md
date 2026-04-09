@@ -162,6 +162,10 @@ Staging uses CI-built immutable images tagged by branch + short SHA, for example
 
 The workflow `.github/workflows/build-staging-images.yml` first validates deployment wiring (script syntax + compose interpolation checks) and then builds/pushes those tags on each push to `main` or `feature/**`.
 
+CI note:
+- When this deployment repo publishes staging images to existing GHCR packages such as `ghcr.io/henriquemichelini/craftalism-api`, the default `GITHUB_TOKEN` may not have permission to write those package namespaces because it is scoped to `craftalism-deployment`, not the service repos that own the packages.
+- Configure Actions secrets `GHCR_PUSH_TOKEN` (classic PAT or fine-grained token with package write access to the target packages) and optionally `GHCR_USERNAME`. The staging workflow uses those secrets when present and falls back to `GITHUB_TOKEN` otherwise.
+
 ### Run test stack
 
 ```bash
