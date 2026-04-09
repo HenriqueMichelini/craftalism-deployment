@@ -9,7 +9,7 @@ MODE="${1:-production}"
 
 case "$MODE" in
   production)
-    docker compose -f docker-compose.yml pull
+    docker compose --profile production -f docker-compose.yml pull
     ;;
   test)
     docker compose -f docker-compose.yml -f docker-compose.test.yml pull

@@ -4,7 +4,7 @@ Docker Compose orchestration for the Craftalism platform with **explicitly separ
 
 1. **Local development** (`docker-compose.yml` + `docker-compose.local.yml`)
 2. **Staging / test** (`docker-compose.yml` + `docker-compose.test.yml`)
-3. **Production** (`docker-compose.yml` only)
+3. **Production** (`docker-compose.yml` with the `production` profile)
 
 ---
 
@@ -32,6 +32,22 @@ cp env.example .env
 ```
 
 Set required secrets and issuer config (`DB_PASSWORD`, `MINECRAFT_CLIENT_SECRET`, `RSA_PRIVATE_KEY`, `RSA_PUBLIC_KEY`, `AUTH_ISSUER_URI`, etc.) in `.env`.
+
+Production also requires the edge proxy settings:
+
+- `CADDY_VERSION` / `CADDY_DIGEST`
+- `DASHBOARD_SITE_ADDRESS`
+- `AUTH_SITE_ADDRESS`
+- `DASHBOARD_BASIC_AUTH_USERNAME`
+- `DASHBOARD_BASIC_AUTH_PASSWORD_HASH`
+
+Generate the dashboard password hash with:
+
+```bash
+docker run --rm caddy:2.9-alpine caddy hash-password --plaintext 'strong-password'
+```
+
+When you paste the hash into `.env`, escape each `$` as `$$` so Docker Compose keeps the bcrypt hash literal.
 
 ### Path assumptions (local development)
 
@@ -71,7 +87,7 @@ What each command does:
 - `./local hot <service>`: rebuilds/restarts only one local service (for example `./local hot dashboard`) without restarting the full stack.
 - `./test`: ensures local plugin jar exists, auto-populates CI tag env vars from current git branch/sha if absent, provides safe defaults for base-compose required vars, resolves/pulls base images, and for app services falls back to local `*:local` images when remote CI tags are unavailable.
 - `./test down`: stops/removes the test stack with test compose overrides.
-- `./prod`: optionally refreshes pinned image digests into `.env`, pre-pulls production images, then starts production compose (`docker-compose.yml`).
+- `./prod`: optionally refreshes pinned image digests into `.env`, pre-pulls production images, then starts production compose with the `production` profile.
 - `./prod down`: stops/removes the production stack.
 
 Optional behavior flags:
@@ -171,19 +187,21 @@ Notes:
 
 ## 3) Production flow
 
-Production uses `docker-compose.yml` only.
+Production uses the base compose file plus the `production` profile, which enables the edge proxy.
 
 ```bash
 scripts/prepull-images.sh production
-docker compose up -d
+docker compose --profile production up -d
 ```
 
 Production requirements:
+- Publicly expose only `80`, `443`, and `25565` at the EC2/security-group layer. Keep `9000`, `3000`, `8080`, and `25575` private.
 - Set immutable release tags in `.env` (`AUTH_SERVER_VERSION`, `API_VERSION`, `DASHBOARD_VERSION`, `ECONOMY_VERSION`).
-- Set pinned image digests in `.env` (`AUTH_SERVER_DIGEST`, `API_DIGEST`, `DASHBOARD_DIGEST`, `POSTGRES_DIGEST`, `MINECRAFT_IMAGE_DIGEST`).
+- Set pinned image digests in `.env` (`CADDY_DIGEST`, `AUTH_SERVER_DIGEST`, `API_DIGEST`, `DASHBOARD_DIGEST`, `POSTGRES_DIGEST`, `MINECRAFT_IMAGE_DIGEST`).
 - Do **not** use `latest` or unpinned image references.
 - Economy plugin is downloaded from GitHub Releases using `ECONOMY_VERSION` (release artifact path).
 - Image references are configured as `repo:tag@sha256:...` so deployments are immutable by default.
+- The edge proxy terminates HTTPS, protects the dashboard with HTTP basic auth, and routes the public auth hostname to the authorization server.
 - `./prod up` fails fast and prints missing variable names when required production configuration is not set.
 
 ---
@@ -191,18 +209,17 @@ Production requirements:
 ## Health checks
 
 ```bash
-curl -f http://localhost:3000/actuator/health
-curl -f http://localhost:9000/actuator/health
-curl -I http://localhost:8080/
+curl -u "${DASHBOARD_BASIC_AUTH_USERNAME}:<dashboard-password>" -I "https://${DASHBOARD_SITE_ADDRESS}/"
+curl -f "https://${AUTH_SITE_ADDRESS}/actuator/health"
 ```
 
 ---
 
 ## Compose file responsibilities
 
-- `docker-compose.yml`: production-safe baseline.
-- `docker-compose.local.yml`: local source builds + local economy plugin jar.
-- `docker-compose.test.yml`: staging/test CI-tagged immutable images + local test-built economy plugin jar.
+- `docker-compose.yml`: production-safe baseline with internal-only service ports and the production edge profile.
+- `docker-compose.local.yml`: local source builds + direct local port publishing + local economy plugin jar.
+- `docker-compose.test.yml`: staging/test CI-tagged immutable images + direct test port publishing + local test-built economy plugin jar.
 
 ## License
 

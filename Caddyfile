@@ -1,0 +1,11 @@
+{$DASHBOARD_SITE_ADDRESS} {
+	basicauth {
+		{$DASHBOARD_BASIC_AUTH_USERNAME} {$DASHBOARD_BASIC_AUTH_PASSWORD_HASH}
+	}
+
+	reverse_proxy dashboard:80
+}
+
+{$AUTH_SITE_ADDRESS} {
+	reverse_proxy auth-server:9000
+}
