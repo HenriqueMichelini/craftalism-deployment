@@ -1,27 +1,27 @@
 services:
-  # Local dev expects sibling repo-root checkouts and explicit Dockerfile paths
-  # inside each service repo, for example ../craftalism-api + java/Dockerfile.
+  # Local dev prefers source build contexts at the app subdirectories
+  # used by the existing Dockerfiles, for example ../craftalism-api/java.
   auth-server:
     image: craftalism-authorization-server:local
     build:
-      context: ${AUTH_SERVER_BUILD_CONTEXT:-../craftalism-authorization-server}
-      dockerfile: ${AUTH_SERVER_DOCKERFILE:-java/Dockerfile}
+      context: ${AUTH_SERVER_BUILD_CONTEXT:-../craftalism-authorization-server/java}
+      dockerfile: ${AUTH_SERVER_DOCKERFILE:-Dockerfile}
     ports:
       - "${AUTH_SERVER_PORT:-9000}:9000"
 
   api:
     image: craftalism-api:local
     build:
-      context: ${API_BUILD_CONTEXT:-../craftalism-api}
-      dockerfile: ${API_DOCKERFILE:-java/Dockerfile}
+      context: ${API_BUILD_CONTEXT:-../craftalism-api/java}
+      dockerfile: ${API_DOCKERFILE:-Dockerfile}
     ports:
       - "${API_PORT:-3000}:8080"
 
   dashboard:
     image: craftalism-dashboard:local
     build:
-      context: ${DASHBOARD_BUILD_CONTEXT:-../craftalism-dashboard}
-      dockerfile: ${DASHBOARD_DOCKERFILE:-react/Dockerfile}
+      context: ${DASHBOARD_BUILD_CONTEXT:-../craftalism-dashboard/react}
+      dockerfile: ${DASHBOARD_DOCKERFILE:-Dockerfile}
     ports:
       - "${DASHBOARD_PORT:-8080}:80"
 

@@ -63,11 +63,11 @@ This deployment repository expects sibling checkouts for local build contexts:
     java/
 ```
 
-If your layout differs, set `*_BUILD_CONTEXT`, `*_DOCKERFILE`, and `ECONOMY_PLUGIN_JAR` explicitly in `.env` (or exported environment variables). The default local build expects repo-root contexts plus these Dockerfile paths:
+If your layout differs, set `*_BUILD_CONTEXT`, `*_DOCKERFILE`, and `ECONOMY_PLUGIN_JAR` explicitly in `.env` (or exported environment variables). The default local build expects these app subdirectory contexts:
 
-- `craftalism-authorization-server/java/Dockerfile`
-- `craftalism-api/java/Dockerfile`
-- `craftalism-dashboard/react/Dockerfile`
+- `craftalism-authorization-server/java`
+- `craftalism-api/java`
+- `craftalism-dashboard/react`
 
 ---
 
@@ -129,10 +129,13 @@ export AUTH_SERVER_BUILD_CONTEXT=../craftalism-authorization-server
 export API_BUILD_CONTEXT=../craftalism-api
 export DASHBOARD_BUILD_CONTEXT=../craftalism-dashboard
 export ECONOMY_PLUGIN_JAR=$PWD/.local-dev/craftalism-economy.jar
-# Optional if your repo layout differs from the defaults above:
-# export AUTH_SERVER_DOCKERFILE=path/to/Dockerfile
-# export API_DOCKERFILE=path/to/Dockerfile
-# export DASHBOARD_DOCKERFILE=path/to/Dockerfile
+# Recommended for the current sibling repo layout:
+# export AUTH_SERVER_BUILD_CONTEXT=../craftalism-authorization-server/java
+# export API_BUILD_CONTEXT=../craftalism-api/java
+# export DASHBOARD_BUILD_CONTEXT=../craftalism-dashboard/react
+# export AUTH_SERVER_DOCKERFILE=Dockerfile
+# export API_DOCKERFILE=Dockerfile
+# export DASHBOARD_DOCKERFILE=Dockerfile
 
 
 docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
@@ -140,7 +143,7 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
 
 Notes:
 - The compose local override builds `auth-server`, `api`, and `dashboard` from local source paths.
-- By default those local builds use repo-root contexts and explicit Dockerfile paths (`java/Dockerfile` for the Java services, `react/Dockerfile` for the dashboard).
+- By default those local builds use app subdirectory contexts (`java` for the backend services, `react` for the dashboard) and `Dockerfile` inside each context.
 - Minecraft plugin uses local jar mount (`/data/plugins/craftalism-economy.jar`) and does **not** use GitHub Releases in local mode.
 - If you are iterating heavily on one service, direct IDE execution is recommended while keeping dependencies (Postgres/Auth/API) in Compose.
 - For faster local loops, you can boot only shared dependencies (Postgres/Auth/API):
