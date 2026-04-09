@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PARENT_DIR="$(dirname "$ROOT_DIR")"
 cd "$ROOT_DIR"
 
 ACTIONS_HELP="Usage: ./local [up|down|hot <service>]"
@@ -28,6 +29,43 @@ fi
 read_env_var() {
   local key="$1"
   awk -F= -v key="$key" '$1 == key {sub(/^[^=]*=/, ""); print; exit}' .env
+}
+
+normalize_local_build_target() {
+  local service_name="$1"
+  local context_var="$2"
+  local dockerfile_var="$3"
+  local default_context="$4"
+  local default_dockerfile="$5"
+  local expected_source_dir="$6"
+
+  local context="${!context_var:-$default_context}"
+  local dockerfile="${!dockerfile_var:-$default_dockerfile}"
+
+  # Accept the common repo-root + subdir Dockerfile override by rewriting it to
+  # the subdirectory build context the current Dockerfiles actually expect.
+  if [[ "$dockerfile" == */Dockerfile ]]; then
+    local dockerfile_dir="${dockerfile%/Dockerfile}"
+    if [[ -d "$context/$dockerfile_dir/$expected_source_dir" ]]; then
+      context="$context/$dockerfile_dir"
+      dockerfile="Dockerfile"
+      echo "[local] Normalized ${service_name} build to context ${context} with dockerfile ${dockerfile}"
+    fi
+  fi
+
+  if [[ ! -f "$context/$dockerfile" ]]; then
+    echo "[local] ${service_name} build misconfigured: missing Dockerfile at ${context}/${dockerfile}" >&2
+    exit 1
+  fi
+
+  if [[ ! -d "$context/$expected_source_dir" ]]; then
+    echo "[local] ${service_name} build misconfigured: expected ${context}/${expected_source_dir}" >&2
+    echo "[local] Use the service subdirectory as build context, for example ${default_context}" >&2
+    exit 1
+  fi
+
+  export "${context_var}=${context}"
+  export "${dockerfile_var}=${dockerfile}"
 }
 
 if [[ ! -f .env ]]; then
@@ -62,6 +100,9 @@ export MINECRAFT_IMAGE_DIGEST="${MINECRAFT_IMAGE_DIGEST:-$DUMMY_DIGEST}"
 export RCON_PASSWORD="${RCON_PASSWORD:-local-rcon-password}"
 
 export ECONOMY_PLUGIN_JAR="${ECONOMY_PLUGIN_JAR:-$ROOT_DIR/.local-dev/craftalism-economy.jar}"
+normalize_local_build_target "auth-server" AUTH_SERVER_BUILD_CONTEXT AUTH_SERVER_DOCKERFILE "$PARENT_DIR/craftalism-authorization-server/java" "Dockerfile" "src"
+normalize_local_build_target "api" API_BUILD_CONTEXT API_DOCKERFILE "$PARENT_DIR/craftalism-api/java" "Dockerfile" "src"
+normalize_local_build_target "dashboard" DASHBOARD_BUILD_CONTEXT DASHBOARD_DOCKERFILE "$PARENT_DIR/craftalism-dashboard/react" "Dockerfile" "src"
 
 if [[ "$ACTION" == "down" ]]; then
   echo "[local] Stopping local stack..."

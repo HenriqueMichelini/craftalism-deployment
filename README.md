@@ -125,17 +125,13 @@ This produces:
 ### Run local stack
 
 ```bash
-export AUTH_SERVER_BUILD_CONTEXT=../craftalism-authorization-server
-export API_BUILD_CONTEXT=../craftalism-api
-export DASHBOARD_BUILD_CONTEXT=../craftalism-dashboard
+export AUTH_SERVER_BUILD_CONTEXT=../craftalism-authorization-server/java
+export API_BUILD_CONTEXT=../craftalism-api/java
+export DASHBOARD_BUILD_CONTEXT=../craftalism-dashboard/react
 export ECONOMY_PLUGIN_JAR=$PWD/.local-dev/craftalism-economy.jar
-# Recommended for the current sibling repo layout:
-# export AUTH_SERVER_BUILD_CONTEXT=../craftalism-authorization-server/java
-# export API_BUILD_CONTEXT=../craftalism-api/java
-# export DASHBOARD_BUILD_CONTEXT=../craftalism-dashboard/react
-# export AUTH_SERVER_DOCKERFILE=Dockerfile
-# export API_DOCKERFILE=Dockerfile
-# export DASHBOARD_DOCKERFILE=Dockerfile
+export AUTH_SERVER_DOCKERFILE=Dockerfile
+export API_DOCKERFILE=Dockerfile
+export DASHBOARD_DOCKERFILE=Dockerfile
 
 
 docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
@@ -144,6 +140,7 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
 Notes:
 - The compose local override builds `auth-server`, `api`, and `dashboard` from local source paths.
 - By default those local builds use app subdirectory contexts (`java` for the backend services, `react` for the dashboard) and `Dockerfile` inside each context.
+- If you prefer pointing `*_BUILD_CONTEXT` at a repo root, pair it with the matching subdirectory Dockerfile, for example `AUTH_SERVER_DOCKERFILE=java/Dockerfile`. The `./local` helper normalizes that combination back to the subdirectory context automatically.
 - Minecraft plugin uses local jar mount (`/data/plugins/craftalism-economy.jar`) and does **not** use GitHub Releases in local mode.
 - If you are iterating heavily on one service, direct IDE execution is recommended while keeping dependencies (Postgres/Auth/API) in Compose.
 - For faster local loops, you can boot only shared dependencies (Postgres/Auth/API):
