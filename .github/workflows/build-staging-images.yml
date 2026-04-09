@@ -96,10 +96,13 @@ jobs:
         include:
           - service: craftalism-api
             context: https://github.com/HenriqueMichelini/craftalism-api.git#${{ github.ref_name }}
+            file: java/Dockerfile
           - service: craftalism-authorization-server
             context: https://github.com/HenriqueMichelini/craftalism-authorization-server.git#${{ github.ref_name }}
+            file: java/Dockerfile
           - service: craftalism-dashboard
             context: https://github.com/HenriqueMichelini/craftalism-dashboard.git#${{ github.ref_name }}
+            file: react/Dockerfile
 
     steps:
       - name: Checkout deployment repo
@@ -130,6 +133,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
           push: true
           provenance: false
           tags: |
