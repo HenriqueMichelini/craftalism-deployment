@@ -8,6 +8,7 @@ REFRESH_SECONDS="${REFRESH_SECONDS:-3}"
 TAIL_LINES="${TAIL_LINES:-20}"
 SHOW_LOGS=0
 COMPACT_MODE=0
+STOP_MONITOR=0
 
 if [ -t 1 ]; then
   COLOR_RED=$'\033[31m'
@@ -89,7 +90,12 @@ cleanup() {
   if [ -t 1 ]; then
     tput cnorm 2>/dev/null || true
     tput sgr0 2>/dev/null || true
+    printf '\n'
   fi
+}
+
+request_stop() {
+  STOP_MONITOR=1
 }
 
 init_screen() {
@@ -99,23 +105,43 @@ init_screen() {
   fi
 }
 
-move_to() {
-  local row="$1"
-  local col="$2"
-  printf '\033[%s;%sH' "$row" "$col"
-}
+declare -a FRAME_LINES
 
-clear_line() {
-  printf '\033[2K'
+reset_frame() {
+  FRAME_LINES=()
 }
 
 write_at() {
   local row="$1"
   local col="$2"
   shift 2
-  move_to "$row" "$col"
-  clear_line
-  printf '%s' "$*"
+
+  while ((${#FRAME_LINES[@]} < row)); do
+    FRAME_LINES+=("")
+  done
+
+  local current="${FRAME_LINES[row-1]}"
+  local prefix=""
+  local current_len=${#current}
+  if (( current_len < col - 1 )); then
+    prefix="${current}$(printf '%*s' "$((col - 1 - current_len))" '')"
+  else
+    prefix="${current:0:col-1}"
+  fi
+  FRAME_LINES[row-1]="${prefix}$*"
+}
+
+flush_frame() {
+  if [ -t 1 ]; then
+    printf '\033[H'
+  fi
+
+  local i
+  for ((i = 0; i < ${#FRAME_LINES[@]}; i++)); do
+    printf '\033[2K%s\n' "${FRAME_LINES[i]}"
+  done
+
+  printf '\033[J'
 }
 
 colorize_level() {
@@ -301,6 +327,7 @@ draw_logs() {
 }
 
 render_once() {
+  reset_frame
   draw_header
   draw_host
   draw_alerts
@@ -310,12 +337,14 @@ render_once() {
     draw_full
   fi
   draw_logs
+  flush_frame
 }
 
 main() {
   parse_args "$@"
   require_docker_access
-  trap cleanup EXIT INT TERM
+  trap request_stop INT TERM
+  trap cleanup EXIT
 
   if (( REFRESH_SECONDS == 0 )); then
     init_screen
@@ -325,9 +354,9 @@ main() {
   fi
 
   init_screen
-  while true; do
+  while (( STOP_MONITOR == 0 )); do
     render_once
-    sleep "$REFRESH_SECONDS"
+    sleep "$REFRESH_SECONDS" || true
   done
 }
 
