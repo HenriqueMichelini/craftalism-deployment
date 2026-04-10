@@ -87,6 +87,7 @@ What each command does:
 - `./test down`: stops/removes the test stack with test compose overrides.
 - `./prod`: optionally refreshes pinned image digests into `.env`, pre-pulls production images, then starts the production stack on localhost-only upstream ports for the infra-managed edge.
 - `./prod down`: stops/removes the production stack.
+- `scripts/monitor-platform.sh`: prints a host and container runtime snapshot; use `--watch=3` for a live refresh loop on EC2.
 
 Optional behavior flags:
 - `SKIP_DIGEST_REFRESH=1 ./prod` to skip automatic digest refresh.
