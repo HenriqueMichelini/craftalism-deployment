@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-REFRESH_SECONDS="${REFRESH_SECONDS:-0}"
-TAIL_LINES="${TAIL_LINES:-40}"
+REFRESH_SECONDS="${REFRESH_SECONDS:-3}"
+TAIL_LINES="${TAIL_LINES:-20}"
 SHOW_LOGS=0
 COMPACT_MODE=0
 
@@ -29,27 +29,23 @@ usage() {
   cat <<'EOF'
 Usage: scripts/monitor-platform.sh [--watch[=SECONDS]] [--logs] [--compact]
 
-Shows a compact runtime snapshot for the Craftalism platform:
-- host uptime and load
-- memory and swap
-- Docker container state
-- Docker container memory/cpu usage
-- compose health state
-- warning thresholds for host/container pressure
-- restart counts and OOM state
-- optional tail of the most recently exited/restarting container
-- top host processes by memory and CPU
+Stateful terminal dashboard for Craftalism:
+- fixed sections with in-place updates
+- host memory/swap/load
+- per-container status and usage
+- alerts and restart counts
+- optional last-failure logs
 
 Examples:
   scripts/monitor-platform.sh
   scripts/monitor-platform.sh --watch
-  scripts/monitor-platform.sh --watch=5
-  scripts/monitor-platform.sh --watch=3 --logs
   scripts/monitor-platform.sh --watch=3 --compact
+  scripts/monitor-platform.sh --watch=3 --logs
 EOF
 }
 
 parse_args() {
+  REFRESH_SECONDS=0
   for arg in "$@"; do
     case "$arg" in
       --watch)
@@ -82,22 +78,6 @@ parse_args() {
   fi
 }
 
-print_section() {
-  printf '\n%s== %s ==%s\n' "$COLOR_BLUE$COLOR_BOLD" "$1" "$COLOR_RESET"
-}
-
-clear_screen() {
-  if [ -t 1 ] && command -v clear >/dev/null 2>&1; then
-    clear || true
-  fi
-}
-
-move_cursor_home() {
-  if [ -t 1 ]; then
-    printf '\033[H'
-  fi
-}
-
 require_docker_access() {
   if ! docker info >/dev/null 2>&1; then
     echo "[monitor] Docker is not reachable. Run this script on the host with access to /var/run/docker.sock." >&2
@@ -105,217 +85,246 @@ require_docker_access() {
   fi
 }
 
-status_label() {
+cleanup() {
+  if [ -t 1 ]; then
+    tput cnorm 2>/dev/null || true
+    tput sgr0 2>/dev/null || true
+  fi
+}
+
+init_screen() {
+  if [ -t 1 ]; then
+    tput civis 2>/dev/null || true
+    clear
+  fi
+}
+
+move_to() {
+  local row="$1"
+  local col="$2"
+  printf '\033[%s;%sH' "$row" "$col"
+}
+
+clear_line() {
+  printf '\033[2K'
+}
+
+write_at() {
+  local row="$1"
+  local col="$2"
+  shift 2
+  move_to "$row" "$col"
+  clear_line
+  printf '%s' "$*"
+}
+
+colorize_level() {
   case "$1" in
-    OK)
-      printf '%sOK%s' "$COLOR_GREEN$COLOR_BOLD" "$COLOR_RESET"
-      ;;
-    WARN)
-      printf '%sWARN%s' "$COLOR_YELLOW$COLOR_BOLD" "$COLOR_RESET"
-      ;;
-    CRITICAL)
-      printf '%sCRITICAL%s' "$COLOR_RED$COLOR_BOLD" "$COLOR_RESET"
-      ;;
-    *)
-      printf '%s' "$1"
-      ;;
+    OK) printf '%s%s%s' "$COLOR_GREEN$COLOR_BOLD" "$1" "$COLOR_RESET" ;;
+    WARN) printf '%s%s%s' "$COLOR_YELLOW$COLOR_BOLD" "$1" "$COLOR_RESET" ;;
+    CRITICAL) printf '%s%s%s' "$COLOR_RED$COLOR_BOLD" "$1" "$COLOR_RESET" ;;
+    *) printf '%s' "$1" ;;
   esac
 }
 
-print_alert() {
-  local level="$1"
-  shift
-  printf '%s %s\n' "$(status_label "$level")" "$*"
+host_snapshot() {
+  local mem_line swap_line load_line
+  mem_line="$(free -m | awk '/^Mem:/ {printf "used=%s free=%s avail=%s total=%s pct=%d", $3, $4, $7, $2, int(($3*100)/$2)}')"
+  swap_line="$(free -m | awk '/^Swap:/ {printf "used=%s total=%s", $3, $2}')"
+  load_line="$(uptime | sed 's/.*load average: //')"
+  printf '%s|%s|%s\n' "$mem_line" "$swap_line" "$load_line"
 }
 
-show_host_summary() {
-  print_section "Host"
-  printf 'time: %s\n' "$(date '+%Y-%m-%d %H:%M:%S %Z')"
-  uptime
-  free -m
-}
-
-show_alerts() {
-  print_section "Alerts"
-
-  local host_line available used total usage_percent swap_total swap_used
-  host_line="$(free -m | awk '/^Mem:/ {printf "%s %s %s %s", $2, $3, $7, int(($3*100)/$2)}')"
-  total="$(printf '%s' "$host_line" | awk '{print $1}')"
-  used="$(printf '%s' "$host_line" | awk '{print $2}')"
-  available="$(printf '%s' "$host_line" | awk '{print $3}')"
-  usage_percent="$(printf '%s' "$host_line" | awk '{print $4}')"
-  swap_total="$(free -m | awk '/^Swap:/ {print $2}')"
-  swap_used="$(free -m | awk '/^Swap:/ {print $3}')"
+alerts_snapshot() {
+  local available used total usage_percent swap_total swap_used
+  read -r total used available usage_percent <<<"$(free -m | awk '/^Mem:/ {print $2, $3, $7, int(($3*100)/$2)}')"
+  read -r swap_total swap_used <<<"$(free -m | awk '/^Swap:/ {print $2, $3}')"
 
   if (( available < 128 )); then
-    print_alert CRITICAL "host memory available is ${available} MiB"
+    printf 'CRITICAL|host available memory %s MiB\n' "$available"
   elif (( available < 256 )); then
-    print_alert WARN "host memory available is ${available} MiB"
+    printf 'WARN|host available memory %s MiB\n' "$available"
   else
-    print_alert OK "host memory available is ${available} MiB"
+    printf 'OK|host available memory %s MiB\n' "$available"
   fi
 
   if (( usage_percent >= 90 )); then
-    print_alert CRITICAL "host memory usage is ${usage_percent}% (${used}/${total} MiB)"
+    printf 'CRITICAL|host memory usage %s%% (%s/%s MiB)\n' "$usage_percent" "$used" "$total"
   elif (( usage_percent >= 80 )); then
-    print_alert WARN "host memory usage is ${usage_percent}% (${used}/${total} MiB)"
+    printf 'WARN|host memory usage %s%% (%s/%s MiB)\n' "$usage_percent" "$used" "$total"
   else
-    print_alert OK "host memory usage is ${usage_percent}% (${used}/${total} MiB)"
+    printf 'OK|host memory usage %s%% (%s/%s MiB)\n' "$usage_percent" "$used" "$total"
   fi
 
   if (( swap_total == 0 )); then
-    print_alert WARN "swap is disabled"
+    printf 'WARN|swap disabled\n'
   elif (( swap_used > 0 )); then
-    print_alert WARN "swap is in use: ${swap_used}/${swap_total} MiB"
+    printf 'WARN|swap in use %s/%s MiB\n' "$swap_used" "$swap_total"
   else
-    print_alert OK "swap is enabled and idle: ${swap_total} MiB"
+    printf 'OK|swap enabled %s MiB\n' "$swap_total"
   fi
 
   docker stats --no-stream --format '{{.Name}}|{{.MemPerc}}|{{.CPUPerc}}' 2>/dev/null | awk -F'|' '
-    function to_num(v) { gsub(/%/, "", v); return v + 0 }
+    function num(v) { gsub(/%/, "", v); return v + 0 }
     {
-      mem = to_num($2)
-      cpu = to_num($3)
-      if (mem >= 90) {
-        printf "CRITICAL|container %s memory at %.2f%%\n", $1, mem
-      } else if (mem >= 75) {
-        printf "WARN|container %s memory at %.2f%%\n", $1, mem
-      }
-      if (cpu >= 80) {
-        printf "WARN|container %s cpu at %.2f%%\n", $1, cpu
-      }
-    }' | while IFS='|' read -r level message; do
-      [ -n "${level:-}" ] || continue
-      print_alert "$level" "$message"
-    done
-}
-
-show_container_state() {
-  print_section "Containers"
-  docker ps --format '{{.Names}}|{{.Status}}|{{.Ports}}' | while IFS='|' read -r name status ports; do
-    [ -n "$name" ] || continue
-    health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}n/a{{end}}' "$name" 2>/dev/null || printf 'unknown')"
-    printf '%s|%s|%s|%s\n' "$name" "$status" "$health" "$ports"
-  done | awk -F'|' '
-    BEGIN {
-      printf "%-28s %-24s %-10s %s\n", "NAME", "STATUS", "HEALTH", "PORTS"
-    }
-    {
-      printf "%-28s %-24s %-10s %s\n", $1, $2, $3, $4
+      mem = num($2)
+      cpu = num($3)
+      if (mem >= 90) print "CRITICAL|container " $1 " memory " $2
+      else if (mem >= 75) print "WARN|container " $1 " memory " $2
+      if (cpu >= 80) print "WARN|container " $1 " cpu " $3
     }'
 }
 
-show_container_usage() {
-  print_section "Container Usage"
-  docker stats --no-stream --format 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.PIDs}}'
-}
-
-show_hot_containers() {
-  print_section "Hot Containers"
-  docker stats --no-stream --format '{{.Name}}|{{.CPUPerc}}|{{.MemUsage}}|{{.MemPerc}}|{{.PIDs}}' 2>/dev/null | awk -F'|' '
-    function to_num(v) { gsub(/%/, "", v); return v + 0 }
-    BEGIN {
-      printf "%-28s %-8s %-22s %-8s %-6s\n", "NAME", "CPU", "MEM USAGE / LIMIT", "MEM %", "PIDS"
-    }
-    {
-      mem = to_num($4)
-      cpu = to_num($2)
-      if (mem >= 75 || cpu >= 40) {
-        printf "%-28s %-8s %-22s %-8s %-6s\n", $1, $2, $3, $4, $5
-      }
-    }'
-}
-
-show_memory_limits() {
-  print_section "Container Limits"
+container_rows() {
   docker ps --format '{{.Names}}' | while read -r name; do
     [ -n "$name" ] || continue
-    docker inspect --format '{{.Name}}|{{.HostConfig.Memory}}|{{.HostConfig.MemoryReservation}}|{{.State.OOMKilled}}|{{.State.Restarting}}|{{.RestartCount}}' "$name"
-  done | sed 's#^/##' | awk -F'|' '
-    BEGIN {
-      printf "%-28s %-12s %-12s %-10s %-10s %-8s\n", "NAME", "LIMIT", "RESERVE", "OOM", "RESTARTING", "RESTARTS"
-    }
+    local status health restart_count oom mem limit mempct cpu
+    status="$(docker inspect --format '{{.State.Status}}' "$name" 2>/dev/null || printf '?')"
+    health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}n/a{{end}}' "$name" 2>/dev/null || printf '?')"
+    restart_count="$(docker inspect --format '{{.RestartCount}}' "$name" 2>/dev/null || printf '0')"
+    oom="$(docker inspect --format '{{.State.OOMKilled}}' "$name" 2>/dev/null || printf 'false')"
+    read -r cpu mem limit mempct <<<"$(docker stats --no-stream --format '{{.CPUPerc}} {{.MemUsage}} {{.MemPerc}}' "$name" 2>/dev/null | awk '{cpu=$1; mem=$2" "$3" "$4; limit=$5; mempct=$6; print cpu, mem, limit, mempct}')"
+    printf '%s|%s|%s|%s|%s|%s|%s|%s\n' "$name" "$status" "$health" "$cpu" "$mem" "$limit" "$mempct" "$restart_count/$oom"
+  done
+}
+
+hot_rows() {
+  docker stats --no-stream --format '{{.Name}}|{{.CPUPerc}}|{{.MemUsage}}|{{.MemPerc}}|{{.PIDs}}' 2>/dev/null | awk -F'|' '
+    function num(v) { gsub(/%/, "", v); return v + 0 }
     {
-      limit = ($2 == "0" ? "unlimited" : $2)
-      reserve = ($3 == "0" ? "unset" : $3)
-      printf "%-28s %-12s %-12s %-10s %-10s %-8s\n", $1, limit, reserve, $4, $5, $6
+      if (num($2) >= 40 || num($4) >= 75) print
     }'
 }
 
-show_processes() {
-  print_section "Top Processes By RSS"
-  ps -eo pid,ppid,%cpu,%mem,rss,cmd --sort=-rss | head -n 12
-
-  print_section "Top Processes By CPU"
-  ps -eo pid,ppid,%cpu,%mem,rss,cmd --sort=-%cpu | head -n 12
-}
-
-show_recent_restarts() {
-  print_section "Recent Docker Events"
-  docker events --since 15m --until 0s --filter type=container --filter event=die --filter event=oom --filter event=restart 2>/dev/null | tail -n 20 || true
-}
-
-show_failure_logs() {
-  (( SHOW_LOGS == 1 )) || return 0
-
+failure_log_target() {
   local target
-  target="$(
-    docker ps -a --format '{{.Names}}|{{.State}}|{{.RunningFor}}' | awk -F'|' '
-      $2 != "running" { print $1; exit }
-    '
-  )"
-
+  target="$(docker ps -a --format '{{.Names}}|{{.State}}' | awk -F'|' '$2 != "running" {print $1; exit}')"
   if [[ -z "$target" ]]; then
-    target="$(
-      docker ps --format '{{.Names}}|{{.Status}}' | awk -F'|' '
-        /Restarting/ { print $1; exit }
-      '
-    )"
+    target="$(docker ps --format '{{.Names}}|{{.Status}}' | awk -F'|' '/Restarting/ {print $1; exit}')"
   fi
+  printf '%s' "$target"
+}
 
+draw_header() {
+  write_at 1 1 "${COLOR_BOLD}Craftalism Platform Monitor${COLOR_RESET}"
+  write_at 2 1 "repo: $ROOT_DIR"
+  write_at 3 1 "time: $(date '+%Y-%m-%d %H:%M:%S %Z')"
+}
+
+draw_host() {
+  local line mem swap load
+  line="$(host_snapshot)"
+  mem="$(printf '%s' "$line" | cut -d'|' -f1)"
+  swap="$(printf '%s' "$line" | cut -d'|' -f2)"
+  load="$(printf '%s' "$line" | cut -d'|' -f3)"
+
+  write_at 5 1 "${COLOR_BLUE}${COLOR_BOLD}Host${COLOR_RESET}"
+  write_at 6 1 "$mem"
+  write_at 7 1 "$swap"
+  write_at 8 1 "load=$load"
+}
+
+draw_alerts() {
+  write_at 10 1 "${COLOR_BLUE}${COLOR_BOLD}Alerts${COLOR_RESET}"
+  local row=11 count=0 level message
+  while IFS='|' read -r level message; do
+    [ -n "${level:-}" ] || continue
+    write_at "$row" 1 "$(colorize_level "$level") $message"
+    row=$((row + 1))
+    count=$((count + 1))
+    if (( count >= 8 )); then
+      break
+    fi
+  done < <(alerts_snapshot)
+  while (( row <= 18 )); do
+    write_at "$row" 1 ""
+    row=$((row + 1))
+  done
+}
+
+draw_compact() {
+  write_at 20 1 "${COLOR_BLUE}${COLOR_BOLD}Hot Containers${COLOR_RESET}"
+  write_at 21 1 "$(printf '%-24s %-8s %-22s %-8s %-8s' 'NAME' 'CPU' 'MEM' 'MEM %' 'PIDS')"
+  local row=22 count=0
+  while IFS='|' read -r name cpu mem mempct pids; do
+    write_at "$row" 1 "$(printf '%-24s %-8s %-22s %-8s %-8s' "$name" "$cpu" "$mem" "$mempct" "$pids")"
+    row=$((row + 1))
+    count=$((count + 1))
+    if (( count >= 8 )); then
+      break
+    fi
+  done < <(hot_rows)
+  while (( row <= 30 )); do
+    write_at "$row" 1 ""
+    row=$((row + 1))
+  done
+}
+
+draw_full() {
+  write_at 20 1 "${COLOR_BLUE}${COLOR_BOLD}Containers${COLOR_RESET}"
+  write_at 21 1 "$(printf '%-22s %-10s %-10s %-8s %-22s %-8s %-12s' 'NAME' 'STATUS' 'HEALTH' 'CPU' 'MEM' 'MEM %' 'RESTARTS')"
+  local row=22 count=0
+  while IFS='|' read -r name status health cpu mem limit mempct restart_meta; do
+    write_at "$row" 1 "$(printf '%-22s %-10s %-10s %-8s %-22s %-8s %-12s' "$name" "$status" "$health" "$cpu" "$mem/$limit" "$mempct" "$restart_meta")"
+    row=$((row + 1))
+    count=$((count + 1))
+    if (( count >= 12 )); then
+      break
+    fi
+  done < <(container_rows)
+  while (( row <= 34 )); do
+    write_at "$row" 1 ""
+    row=$((row + 1))
+  done
+}
+
+draw_logs() {
+  (( SHOW_LOGS == 1 )) || return 0
+  local target row=36
+  target="$(failure_log_target)"
+  write_at "$row" 1 "${COLOR_BLUE}${COLOR_BOLD}Failure Logs${COLOR_RESET}"
+  row=$((row + 1))
   if [[ -z "$target" ]]; then
-    return 0
+    write_at "$row" 1 "no stopped or restarting containers"
+    row=$((row + 1))
+  else
+    write_at "$row" 1 "target: $target"
+    row=$((row + 1))
+    while IFS= read -r line; do
+      write_at "$row" 1 "$line"
+      row=$((row + 1))
+      if (( row > 36 + TAIL_LINES )); then
+        break
+      fi
+    done < <(docker logs --tail "$TAIL_LINES" "$target" 2>&1 || true)
   fi
-
-  print_section "Failure Logs: ${target}"
-  docker logs --tail "$TAIL_LINES" "$target" 2>&1 || true
 }
 
 render_once() {
-  if [ -t 1 ] && (( REFRESH_SECONDS > 0 )); then
-    move_cursor_home
-  else
-    clear_screen
-  fi
-  echo "Craftalism Platform Monitor"
-  echo "repo: $ROOT_DIR"
-  show_host_summary
-  show_alerts
+  draw_header
+  draw_host
+  draw_alerts
   if (( COMPACT_MODE == 1 )); then
-    show_hot_containers
-    show_memory_limits
-    show_recent_restarts
-    show_failure_logs
-    return
+    draw_compact
+  else
+    draw_full
   fi
-  show_container_state
-  show_container_usage
-  show_memory_limits
-  show_processes
-  show_recent_restarts
-  show_failure_logs
+  draw_logs
 }
 
 main() {
   parse_args "$@"
   require_docker_access
+  trap cleanup EXIT INT TERM
 
   if (( REFRESH_SECONDS == 0 )); then
+    init_screen
     render_once
+    printf '\n'
     exit 0
   fi
 
-  clear_screen
+  init_screen
   while true; do
     render_once
     sleep "$REFRESH_SECONDS"
