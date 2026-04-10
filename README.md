@@ -4,7 +4,7 @@ Docker Compose orchestration for the Craftalism platform with **explicitly separ
 
 1. **Local development** (`docker-compose.yml` + `docker-compose.local.yml`)
 2. **Staging / test** (`docker-compose.yml` + `docker-compose.test.yml`)
-3. **Production** (`docker-compose.yml` with the `production` profile)
+3. **Production** (`docker-compose.yml` behind the infra-managed host edge)
 
 ---
 
@@ -33,21 +33,15 @@ cp env.example .env
 
 Set required secrets and issuer config (`DB_PASSWORD`, `MINECRAFT_CLIENT_SECRET`, `RSA_PRIVATE_KEY`, `RSA_PUBLIC_KEY`, `AUTH_ISSUER_URI`, etc.) in `.env`.
 
-Production also requires the edge proxy settings:
+For the normal EC2 production path behind `craftalism-infra`, this repo binds
+application upstreams only on loopback and relies on the host Caddy proxy from
+that infra repository to own public `80/443`.
 
-- `CADDY_VERSION` / `CADDY_DIGEST`
-- `DASHBOARD_SITE_ADDRESS`
-- `AUTH_SITE_ADDRESS`
-- `DASHBOARD_BASIC_AUTH_USERNAME`
-- `DASHBOARD_BASIC_AUTH_PASSWORD_HASH`
+Expected localhost bindings:
 
-Generate the dashboard password hash with:
-
-```bash
-docker run --rm caddy:2.9-alpine caddy hash-password --plaintext 'strong-password'
-```
-
-When you paste the hash into `.env`, escape each `$` as `$$` so Docker Compose keeps the bcrypt hash literal.
+- auth server: `127.0.0.1:9000`
+- API: `127.0.0.1:3000`
+- dashboard: `127.0.0.1:8080`
 
 ### Path assumptions (local development)
 
@@ -91,7 +85,7 @@ What each command does:
 - `./local hot <service>`: rebuilds/restarts only one local service (for example `./local hot dashboard`) without restarting the full stack.
 - `./test`: ensures local plugin jar exists, auto-populates CI tag env vars from current git branch/sha if absent, provides safe defaults for base-compose required vars, resolves/pulls base images, and for app services falls back to local `*:local` images when remote CI tags are unavailable.
 - `./test down`: stops/removes the test stack with test compose overrides.
-- `./prod`: optionally refreshes pinned image digests into `.env`, pre-pulls production images, then starts production compose with the `production` profile.
+- `./prod`: optionally refreshes pinned image digests into `.env`, pre-pulls production images, then starts the production stack on localhost-only upstream ports for the infra-managed edge.
 - `./prod down`: stops/removes the production stack.
 
 Optional behavior flags:
@@ -196,21 +190,24 @@ Notes:
 
 ## 3) Production flow
 
-Production uses the base compose file plus the `production` profile, which enables the edge proxy.
+Production uses the base compose file directly. The public edge, TLS, and
+dashboard basic auth are expected to be owned by `craftalism-infra` on the
+host, while this repo publishes only the localhost upstream ports the host
+proxy forwards to.
 
 ```bash
 scripts/prepull-images.sh production
-docker compose --profile production up -d
+docker compose up -d
 ```
 
 Production requirements:
 - Publicly expose only `80`, `443`, and `25565` at the EC2/security-group layer. Keep `9000`, `3000`, `8080`, and `25575` private.
 - Set immutable release tags in `.env` (`AUTH_SERVER_VERSION`, `API_VERSION`, `DASHBOARD_VERSION`, `ECONOMY_VERSION`).
-- Set pinned image digests in `.env` (`CADDY_DIGEST`, `AUTH_SERVER_DIGEST`, `API_DIGEST`, `DASHBOARD_DIGEST`, `POSTGRES_DIGEST`, `MINECRAFT_IMAGE_DIGEST`).
+- Set pinned image digests in `.env` (`AUTH_SERVER_DIGEST`, `API_DIGEST`, `DASHBOARD_DIGEST`, `POSTGRES_DIGEST`, `MINECRAFT_IMAGE_DIGEST`).
 - Do **not** use `latest` or unpinned image references.
 - Economy plugin is downloaded from GitHub Releases using `ECONOMY_VERSION` (release artifact path).
 - Image references are configured as `repo:tag@sha256:...` so deployments are immutable by default.
-- The edge proxy terminates HTTPS, protects the dashboard with HTTP basic auth, and routes the public auth hostname to the authorization server.
+- `craftalism-infra` owns the public edge proxy, TLS termination, and dashboard basic auth for the EC2 deployment path.
 - `./prod up` fails fast and prints missing variable names when required production configuration is not set.
 
 ---
@@ -218,15 +215,16 @@ Production requirements:
 ## Health checks
 
 ```bash
-curl -u "${DASHBOARD_BASIC_AUTH_USERNAME}:<dashboard-password>" -I "https://${DASHBOARD_SITE_ADDRESS}/"
-curl -f "https://${AUTH_SITE_ADDRESS}/actuator/health"
+curl -I "https://dashboard.craftalism.com/"
+curl -f "https://auth.craftalism.com/actuator/health"
+curl -f "https://api.craftalism.com/actuator/health"
 ```
 
 ---
 
 ## Compose file responsibilities
 
-- `docker-compose.yml`: production-safe baseline with internal-only service ports and the production edge profile.
+- `docker-compose.yml`: production-safe baseline with localhost-only upstream publishing for the infra-managed host edge, plus an optional `standalone-edge` profile.
 - `docker-compose.local.yml`: local source builds + direct local port publishing + local economy plugin jar.
 - `docker-compose.test.yml`: staging/test CI-tagged immutable images + direct test port publishing + local test-built economy plugin jar.
 

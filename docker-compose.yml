@@ -1,9 +1,9 @@
 services:
   edge:
-    image: caddy:${CADDY_VERSION:-2.9-alpine}@${CADDY_DIGEST:?Set CADDY_DIGEST to a pinned sha256 digest}
+    image: ${CADDY_IMAGE:-caddy:2.9-alpine}
     container_name: craftalism-edge
     profiles:
-      - production
+      - standalone-edge
     depends_on:
       auth-server:
         condition: service_healthy
@@ -78,6 +78,8 @@ services:
     depends_on:
       auth-db-init:
         condition: service_completed_successfully
+    ports:
+      - "${AUTH_SERVER_HOST:-127.0.0.1}:${AUTH_SERVER_PORT:-9000}:9000"
     networks:
       - craftalism
     restart: unless-stopped
@@ -106,6 +108,8 @@ services:
         condition: service_healthy
       auth-server:
         condition: service_healthy
+    ports:
+      - "${API_HOST:-127.0.0.1}:${API_PORT:-3000}:8080"
     networks:
       - craftalism
     restart: unless-stopped
@@ -133,6 +137,8 @@ services:
       API_UPSTREAM_URL: ${API_UPSTREAM_URL:-http://api:8080}
     depends_on:
       - api
+    ports:
+      - "${DASHBOARD_HOST:-127.0.0.1}:${DASHBOARD_PORT:-8080}:80"
     networks:
       - craftalism
     restart: unless-stopped

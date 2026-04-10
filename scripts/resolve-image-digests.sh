@@ -6,7 +6,6 @@ set -euo pipefail
 #   scripts/resolve-image-digests.sh [--env-file path] [--write] [--mode all|prod|test] [--allow-missing]
 #
 # Default mode prints:
-#   CADDY_DIGEST=sha256:...
 #   AUTH_SERVER_DIGEST=sha256:...
 #   API_DIGEST=sha256:...
 #   DASHBOARD_DIGEST=sha256:...
@@ -85,14 +84,12 @@ load_env_var() {
 for key in \
   POSTGRES_VERSION \
   MINECRAFT_IMAGE_VERSION \
-  CADDY_VERSION \
   AUTH_SERVER_VERSION \
   API_VERSION \
   DASHBOARD_VERSION \
   AUTH_SERVER_CI_TAG \
   API_CI_TAG \
   DASHBOARD_CI_TAG \
-  CADDY_DIGEST \
   AUTH_SERVER_DIGEST \
   API_DIGEST \
   DASHBOARD_DIGEST \
@@ -170,10 +167,8 @@ replace_or_append() {
 
 POSTGRES_VERSION="${POSTGRES_VERSION:-18-alpine}"
 MINECRAFT_IMAGE_VERSION="${MINECRAFT_IMAGE_VERSION:-java21}"
-CADDY_VERSION="${CADDY_VERSION:-2.9-alpine}"
 
 if [[ "$MODE" == "all" || "$MODE" == "prod" ]]; then
-  CADDY_DIGEST="$(resolve_or_fail CADDY_DIGEST "caddy:${CADDY_VERSION}")"
   require_var AUTH_SERVER_VERSION
   require_var API_VERSION
   require_var DASHBOARD_VERSION
@@ -204,7 +199,6 @@ fi
 
 if [[ "$WRITE_MODE" == "1" ]]; then
   if [[ "$MODE" == "all" || "$MODE" == "prod" ]]; then
-    replace_or_append CADDY_DIGEST "$CADDY_DIGEST"
     replace_or_append AUTH_SERVER_DIGEST "$AUTH_SERVER_DIGEST"
     replace_or_append API_DIGEST "$API_DIGEST"
     replace_or_append DASHBOARD_DIGEST "$DASHBOARD_DIGEST"
@@ -216,7 +210,6 @@ if [[ "$WRITE_MODE" == "1" ]]; then
   echo "Updated digest variables in $ENV_FILE"
 else
   if [[ "$MODE" == "all" || "$MODE" == "prod" ]]; then
-    echo "CADDY_DIGEST=$CADDY_DIGEST"
     echo "AUTH_SERVER_DIGEST=$AUTH_SERVER_DIGEST"
     echo "API_DIGEST=$API_DIGEST"
     echo "DASHBOARD_DIGEST=$DASHBOARD_DIGEST"
