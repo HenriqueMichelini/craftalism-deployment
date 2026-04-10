@@ -9,6 +9,8 @@ TAIL_LINES="${TAIL_LINES:-20}"
 SHOW_LOGS=0
 COMPACT_MODE=0
 STOP_MONITOR=0
+DOCKER_STATS_SNAPSHOT=''
+DOCKER_INSPECT_SNAPSHOT=''
 
 if [ -t 1 ]; then
   COLOR_RED=$'\033[31m'
@@ -84,6 +86,31 @@ require_docker_access() {
     echo "[monitor] Docker is not reachable. Run this script on the host with access to /var/run/docker.sock." >&2
     exit 1
   fi
+}
+
+refresh_docker_snapshot() {
+  local container_ids
+  DOCKER_STATS_SNAPSHOT="$(docker stats --no-stream --format '{{.Name}}|{{.CPUPerc}}|{{.MemUsage}}|{{.MemPerc}}|{{.PIDs}}' 2>/dev/null || true)"
+  container_ids="$(docker ps -q)"
+  if [[ -n "$container_ids" ]]; then
+    DOCKER_INSPECT_SNAPSHOT="$(docker inspect $container_ids --format '{{.Name}}|{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}n/a{{end}}|{{.RestartCount}}|{{.State.OOMKilled}}' 2>/dev/null | sed 's#^/##' || true)"
+  else
+    DOCKER_INSPECT_SNAPSHOT=''
+  fi
+}
+
+docker_stats_lookup() {
+  local name="$1"
+  printf '%s\n' "$DOCKER_STATS_SNAPSHOT" | awk -F'|' -v name="$name" '$1 == name {print; exit}'
+}
+
+docker_inspect_lookup() {
+  local name="$1"
+  printf '%s\n' "$DOCKER_INSPECT_SNAPSHOT" | awk -F'|' -v name="$name" '$1 == name {print; exit}'
+}
+
+refresh_is_zero() {
+  awk -v value="$REFRESH_SECONDS" 'BEGIN { exit (value == 0 ? 0 : 1) }'
 }
 
 cleanup() {
@@ -190,32 +217,37 @@ alerts_snapshot() {
     printf 'OK|swap enabled %s MiB\n' "$swap_total"
   fi
 
-  docker stats --no-stream --format '{{.Name}}|{{.MemPerc}}|{{.CPUPerc}}' 2>/dev/null | awk -F'|' '
+  printf '%s\n' "$DOCKER_STATS_SNAPSHOT" | awk -F'|' '
     function num(v) { gsub(/%/, "", v); return v + 0 }
     {
-      mem = num($2)
-      cpu = num($3)
-      if (mem >= 90) print "CRITICAL|container " $1 " memory " $2
-      else if (mem >= 75) print "WARN|container " $1 " memory " $2
-      if (cpu >= 80) print "WARN|container " $1 " cpu " $3
+      mem = num($4)
+      cpu = num($2)
+      if (mem >= 90) print "CRITICAL|container " $1 " memory " $4
+      else if (mem >= 75) print "WARN|container " $1 " memory " $4
+      if (cpu >= 80) print "WARN|container " $1 " cpu " $2
     }'
 }
 
 container_rows() {
   docker ps --format '{{.Names}}' | while read -r name; do
     [ -n "$name" ] || continue
-    local status health restart_count oom mem limit mempct cpu
-    status="$(docker inspect --format '{{.State.Status}}' "$name" 2>/dev/null || printf '?')"
-    health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}n/a{{end}}' "$name" 2>/dev/null || printf '?')"
-    restart_count="$(docker inspect --format '{{.RestartCount}}' "$name" 2>/dev/null || printf '0')"
-    oom="$(docker inspect --format '{{.State.OOMKilled}}' "$name" 2>/dev/null || printf 'false')"
-    read -r cpu mem limit mempct <<<"$(docker stats --no-stream --format '{{.CPUPerc}} {{.MemUsage}} {{.MemPerc}}' "$name" 2>/dev/null | awk '{cpu=$1; mem=$2" "$3" "$4; limit=$5; mempct=$6; print cpu, mem, limit, mempct}')"
+    local inspect_row stats_row status health restart_count oom cpu mem limit mempct
+    inspect_row="$(docker_inspect_lookup "$name")"
+    stats_row="$(docker_stats_lookup "$name")"
+    status="$(printf '%s' "$inspect_row" | awk -F'|' '{print ($2 == "" ? "?" : $2)}')"
+    health="$(printf '%s' "$inspect_row" | awk -F'|' '{print ($3 == "" ? "?" : $3)}')"
+    restart_count="$(printf '%s' "$inspect_row" | awk -F'|' '{print ($4 == "" ? "0" : $4)}')"
+    oom="$(printf '%s' "$inspect_row" | awk -F'|' '{print ($5 == "" ? "false" : $5)}')"
+    cpu="$(printf '%s' "$stats_row" | awk -F'|' '{print ($2 == "" ? "-" : $2)}')"
+    mem="$(printf '%s' "$stats_row" | awk -F'|' '{split($3, parts, " / "); print (parts[1] == "" ? "-" : parts[1])}')"
+    limit="$(printf '%s' "$stats_row" | awk -F'|' '{split($3, parts, " / "); print (parts[2] == "" ? "-" : parts[2])}')"
+    mempct="$(printf '%s' "$stats_row" | awk -F'|' '{print ($4 == "" ? "-" : $4)}')"
     printf '%s|%s|%s|%s|%s|%s|%s|%s\n' "$name" "$status" "$health" "$cpu" "$mem" "$limit" "$mempct" "$restart_count/$oom"
   done
 }
 
 hot_rows() {
-  docker stats --no-stream --format '{{.Name}}|{{.CPUPerc}}|{{.MemUsage}}|{{.MemPerc}}|{{.PIDs}}' 2>/dev/null | awk -F'|' '
+  printf '%s\n' "$DOCKER_STATS_SNAPSHOT" | awk -F'|' '
     function num(v) { gsub(/%/, "", v); return v + 0 }
     {
       if (num($2) >= 40 || num($4) >= 75) print
@@ -328,6 +360,7 @@ draw_logs() {
 
 render_once() {
   reset_frame
+  refresh_docker_snapshot
   draw_header
   draw_host
   draw_alerts
@@ -346,7 +379,7 @@ main() {
   trap request_stop INT TERM
   trap cleanup EXIT
 
-  if (( REFRESH_SECONDS == 0 )); then
+  if refresh_is_zero; then
     init_screen
     render_once
     printf '\n'
