@@ -145,6 +145,12 @@ init_screen() {
   fi
 }
 
+move_cursor_home() {
+  if [ -t 1 ]; then
+    tput cup 0 0 2>/dev/null || printf '\033[H'
+  fi
+}
+
 reset_frame() {
   FRAME_LINES=()
 }
@@ -170,9 +176,7 @@ write_at() {
 }
 
 flush_frame() {
-  if [ -t 1 ]; then
-    printf '\033[H'
-  fi
+  move_cursor_home
 
   local i
   for ((i = 0; i < ${#FRAME_LINES[@]}; i++)); do
@@ -195,6 +199,16 @@ colorize_level() {
     CRITICAL) printf '%s%s%s' "$COLOR_RED$COLOR_BOLD" "$1" "$COLOR_RESET" ;;
     *) printf '%s' "$1" ;;
   esac
+}
+
+percent_to_int() {
+  local value="${1%%%}"
+  value="${value%%.*}"
+  if [[ "$value" =~ ^[0-9]+$ ]]; then
+    printf '%s' "$value"
+  else
+    printf '0'
+  fi
 }
 
 now_epoch() {
@@ -464,7 +478,8 @@ draw_alerts() {
     mem_pct="${CONTAINER_MEM_PCT[$name]:--}"
 
     if [[ "$mem_pct" != "-" ]]; then
-      local mem_pct_num="${mem_pct%%%}"
+      local mem_pct_num
+      mem_pct_num="$(percent_to_int "$mem_pct")"
       if (( mem_pct_num >= 90 )); then
         write_at "$row" 1 "$(colorize_level CRITICAL) container ${name} memory ${mem_pct}"
         row=$((row + 1))
@@ -477,7 +492,8 @@ draw_alerts() {
     fi
 
     if [[ "$cpu" != "-" ]]; then
-      local cpu_num="${cpu%%%}"
+      local cpu_num
+      cpu_num="$(percent_to_int "$cpu")"
       if (( cpu_num >= 80 )); then
         write_at "$row" 1 "$(colorize_level WARN) container ${name} cpu ${cpu}"
         row=$((row + 1))
@@ -507,14 +523,14 @@ draw_compact() {
     mem_limit="${CONTAINER_MEM_LIMIT[$name]:--}"
     mem_pct="${CONTAINER_MEM_PCT[$name]:--}"
     pids="${CONTAINER_PIDS[$name]:--}"
-    cpu_num="${cpu%%%}"
-    mem_pct_num="${mem_pct%%%}"
+    cpu_num="$(percent_to_int "$cpu")"
+    mem_pct_num="$(percent_to_int "$mem_pct")"
 
     if [[ "$cpu" == "-" && "$mem_pct" == "-" ]]; then
       continue
     fi
 
-    if (( ${cpu_num:-0} < 40 && ${mem_pct_num:-0} < 75 )); then
+    if (( cpu_num < 40 && mem_pct_num < 75 )); then
       continue
     fi
 
