@@ -21,6 +21,8 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    mem_limit: ${EDGE_MEM_LIMIT:-128m}
+    mem_reservation: ${EDGE_MEM_RESERVATION:-64m}
     networks:
       - craftalism
     restart: unless-stopped
@@ -30,6 +32,14 @@ services:
   postgres:
     image: postgres:${POSTGRES_VERSION:-18-alpine}@${POSTGRES_DIGEST:?Set POSTGRES_DIGEST to a pinned sha256 digest}
     container_name: craftalism-postgres
+    command:
+      - postgres
+      - -c
+      - shared_buffers=${POSTGRES_SHARED_BUFFERS:-128MB}
+      - -c
+      - work_mem=${POSTGRES_WORK_MEM:-4MB}
+      - -c
+      - maintenance_work_mem=${POSTGRES_MAINTENANCE_WORK_MEM:-64MB}
     environment:
       PGDATA: /var/lib/postgresql/data/pgdata
       POSTGRES_DB: ${DB_NAME:-craftalism}
@@ -37,6 +47,8 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    mem_limit: ${POSTGRES_MEM_LIMIT:-256m}
+    mem_reservation: ${POSTGRES_MEM_RESERVATION:-128m}
     networks:
       - craftalism
     restart: unless-stopped
@@ -66,6 +78,7 @@ services:
     image: ghcr.io/henriquemichelini/craftalism-authorization-server:${AUTH_SERVER_VERSION:?Set AUTH_SERVER_VERSION to an immutable release tag}@${AUTH_SERVER_DIGEST:?Set AUTH_SERVER_DIGEST to the release image sha256 digest}
     container_name: craftalism-auth-server
     environment:
+      JAVA_TOOL_OPTIONS: ${AUTH_SERVER_JAVA_TOOL_OPTIONS:--Xms96m -Xmx192m -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m}
       DB_URL: jdbc:postgresql://postgres:5432/authserver
       DB_USER: ${DB_USER:-craftalism}
       DB_PASSWORD: ${DB_PASSWORD}
@@ -80,6 +93,8 @@ services:
         condition: service_completed_successfully
     ports:
       - "${AUTH_SERVER_HOST:-127.0.0.1}:${AUTH_SERVER_PORT:-9000}:9000"
+    mem_limit: ${AUTH_SERVER_MEM_LIMIT:-256m}
+    mem_reservation: ${AUTH_SERVER_MEM_RESERVATION:-192m}
     networks:
       - craftalism
     restart: unless-stopped
@@ -98,6 +113,7 @@ services:
     image: ghcr.io/henriquemichelini/craftalism-api:${API_VERSION:?Set API_VERSION to an immutable release tag}@${API_DIGEST:?Set API_DIGEST to the release image sha256 digest}
     container_name: craftalism-api
     environment:
+      JAVA_TOOL_OPTIONS: ${API_JAVA_TOOL_OPTIONS:--Xms128m -Xmx256m -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m}
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-craftalism}
       SPRING_DATASOURCE_USERNAME: ${DB_USER:-craftalism}
@@ -110,6 +126,8 @@ services:
         condition: service_healthy
     ports:
       - "${API_HOST:-127.0.0.1}:${API_PORT:-3000}:8080"
+    mem_limit: ${API_MEM_LIMIT:-384m}
+    mem_reservation: ${API_MEM_RESERVATION:-256m}
     networks:
       - craftalism
     restart: unless-stopped
@@ -139,6 +157,8 @@ services:
       - api
     ports:
       - "${DASHBOARD_HOST:-127.0.0.1}:${DASHBOARD_PORT:-8080}:80"
+    mem_limit: ${DASHBOARD_MEM_LIMIT:-96m}
+    mem_reservation: ${DASHBOARD_MEM_RESERVATION:-32m}
     networks:
       - craftalism
     restart: unless-stopped
@@ -163,14 +183,15 @@ services:
       EULA: "TRUE"
       TYPE: ${MINECRAFT_TYPE:-PAPER}
       VERSION: ${MINECRAFT_VERSION:-1.21.4}
+      INIT_MEMORY: ${MINECRAFT_INIT_MEMORY:-512M}
       MEMORY: ${MINECRAFT_MEMORY:-2G}
       MAX_PLAYERS: ${MINECRAFT_MAX_PLAYERS:-20}
       DIFFICULTY: ${MINECRAFT_DIFFICULTY:-normal}
       MODE: ${MINECRAFT_MODE:-survival}
       MOTD: ${MINECRAFT_MOTD:-Craftalism Economy Server}
       ONLINE_MODE: ${MINECRAFT_ONLINE_MODE:-TRUE}
-      VIEW_DISTANCE: ${MINECRAFT_VIEW_DISTANCE:-10}
-      SIMULATION_DISTANCE: ${MINECRAFT_SIMULATION_DISTANCE:-10}
+      VIEW_DISTANCE: ${MINECRAFT_VIEW_DISTANCE:-6}
+      SIMULATION_DISTANCE: ${MINECRAFT_SIMULATION_DISTANCE:-4}
       ENABLE_RCON: "TRUE"
       RCON_PASSWORD: ${RCON_PASSWORD:?Set RCON_PASSWORD to a strong value}
       RCON_PORT: 25575
@@ -183,6 +204,8 @@ services:
       - minecraft_data:/data
     ports:
       - "${MINECRAFT_PORT:-25565}:25565"
+    mem_limit: ${MINECRAFT_MEM_LIMIT:-768m}
+    mem_reservation: ${MINECRAFT_MEM_RESERVATION:-512m}
     networks:
       - craftalism
     depends_on:

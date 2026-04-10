@@ -210,6 +210,17 @@ Production requirements:
 - `craftalism-infra` owns the public edge proxy, TLS termination, and dashboard basic auth for the EC2 deployment path.
 - `./prod up` fails fast and prints missing variable names when required production configuration is not set.
 
+### Small-instance guidance
+
+For `t3.small` testing, this repo now supports explicit runtime ceilings through `.env`:
+
+- `AUTH_SERVER_JAVA_TOOL_OPTIONS` and `API_JAVA_TOOL_OPTIONS` cap Spring JVM heap growth.
+- `*_MEM_LIMIT` and `*_MEM_RESERVATION` set container-level memory ceilings.
+- `POSTGRES_SHARED_BUFFERS`, `POSTGRES_WORK_MEM`, and `POSTGRES_MAINTENANCE_WORK_MEM` keep the database conservative on low-memory hosts.
+- `MINECRAFT_INIT_MEMORY`, `MINECRAFT_MEMORY`, `MINECRAFT_VIEW_DISTANCE`, and `MINECRAFT_SIMULATION_DISTANCE` now have low-memory-friendly example values in `env.example`.
+
+These defaults are aimed at survival on a hobby-scale `t3.small`. If the host still thrashes or player load is non-trivial, move to `t3.medium`.
+
 ---
 
 ## Health checks
