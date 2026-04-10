@@ -78,7 +78,17 @@ show_host_summary() {
 
 show_container_state() {
   print_section "Containers"
-  docker compose ps --format 'table {{.Name}}\t{{.State}}\t{{.HealthStatus}}\t{{.Ports}}'
+  docker ps --format '{{.Names}}|{{.Status}}|{{.Ports}}' | while IFS='|' read -r name status ports; do
+    [ -n "$name" ] || continue
+    health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}n/a{{end}}' "$name" 2>/dev/null || printf 'unknown')"
+    printf '%s|%s|%s|%s\n' "$name" "$status" "$health" "$ports"
+  done | awk -F'|' '
+    BEGIN {
+      printf "%-28s %-24s %-10s %s\n", "NAME", "STATUS", "HEALTH", "PORTS"
+    }
+    {
+      printf "%-28s %-24s %-10s %s\n", $1, $2, $3, $4
+    }'
 }
 
 show_container_usage() {
