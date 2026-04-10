@@ -72,8 +72,8 @@ parse_args() {
     esac
   done
 
-  if ! [[ "$REFRESH_SECONDS" =~ ^[0-9]+$ ]]; then
-    echo "[monitor] REFRESH_SECONDS must be a non-negative integer." >&2
+  if ! [[ "$REFRESH_SECONDS" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+    echo "[monitor] REFRESH_SECONDS must be a non-negative number." >&2
     exit 1
   fi
 }
