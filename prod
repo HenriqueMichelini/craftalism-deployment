@@ -83,15 +83,21 @@ fi
 
 require_prod_vars
 
+digests_refreshed=0
 if [[ "${SKIP_DIGEST_REFRESH:-0}" != "1" ]]; then
   echo "[prod] Refreshing image digests in .env..."
   scripts/resolve-image-digests.sh --env-file .env --write
+  digests_refreshed=1
 else
   echo "[prod] Skipping digest refresh (SKIP_DIGEST_REFRESH=1)"
 fi
 
-echo "[prod] Pre-pulling production images..."
-scripts/prepull-images.sh production
+if [[ "$digests_refreshed" == "1" ]]; then
+  echo "[prod] Skipping extra pre-pull because digest refresh already pulled the production images."
+else
+  echo "[prod] Pre-pulling production images..."
+  scripts/prepull-images.sh production
+fi
 
 echo "[prod] Starting production stack..."
 docker compose up -d "$@"

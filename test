@@ -87,8 +87,10 @@ if [[ "${SKIP_TEST_DIGEST_REFRESH:-0}" != "1" ]]; then
   export MINECRAFT_IMAGE_DIGEST="$(read_env_var MINECRAFT_IMAGE_DIGEST)"
   export POSTGRES_DIGEST="${POSTGRES_DIGEST:-$DUMMY_DIGEST}"
   export MINECRAFT_IMAGE_DIGEST="${MINECRAFT_IMAGE_DIGEST:-$DUMMY_DIGEST}"
+  base_images_resolved=1
 else
   echo "[test] Skipping digest refresh (SKIP_TEST_DIGEST_REFRESH=1)"
+  base_images_resolved=0
 fi
 
 ensure_test_image() {
@@ -112,9 +114,13 @@ ensure_test_image() {
   exit 1
 }
 
-echo "[test] Pulling base images..."
-docker pull "postgres:${POSTGRES_VERSION}@${POSTGRES_DIGEST}" >/dev/null
-docker pull "itzg/minecraft-server:${MINECRAFT_IMAGE_VERSION}@${MINECRAFT_IMAGE_DIGEST}" >/dev/null
+if [[ "$base_images_resolved" == "1" ]]; then
+  echo "[test] Skipping extra base-image pull because digest refresh already pulled them."
+else
+  echo "[test] Pulling base images..."
+  docker pull "postgres:${POSTGRES_VERSION}@${POSTGRES_DIGEST}" >/dev/null
+  docker pull "itzg/minecraft-server:${MINECRAFT_IMAGE_VERSION}@${MINECRAFT_IMAGE_DIGEST}" >/dev/null
+fi
 
 echo "[test] Resolving app images (registry or local fallback)..."
 ensure_test_image "auth_server" "craftalism-authorization-server:local" "ghcr.io/henriquemichelini/craftalism-authorization-server:${AUTH_SERVER_CI_TAG}"

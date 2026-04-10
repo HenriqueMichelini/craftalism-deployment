@@ -83,9 +83,9 @@ What each command does:
 - `./local`: bootstraps local sibling repos, builds local plugin jar, and starts local compose (`docker-compose.yml` + `docker-compose.local.yml`).
 - `./local down`: stops/removes the local stack with the same compose file set.
 - `./local hot <service>`: rebuilds/restarts only one local service (for example `./local hot dashboard`) without restarting the full stack.
-- `./test`: ensures local plugin jar exists, auto-populates CI tag env vars from current git branch/sha if absent, provides safe defaults for base-compose required vars, resolves/pulls base images, and for app services falls back to local `*:local` images when remote CI tags are unavailable.
+- `./test`: ensures local plugin jar exists, auto-populates CI tag env vars from current git branch/sha if absent, provides safe defaults for base-compose required vars, refreshes test base-image digests when enabled, and for app services falls back to local `*:local` images when remote CI tags are unavailable.
 - `./test down`: stops/removes the test stack with test compose overrides.
-- `./prod`: optionally refreshes pinned image digests into `.env`, pre-pulls production images, then starts the production stack on localhost-only upstream ports for the infra-managed edge.
+- `./prod`: optionally refreshes pinned image digests into `.env`, reuses those pulls when available, and starts the production stack on localhost-only upstream ports for the infra-managed edge.
 - `./prod down`: stops/removes the production stack.
 - `scripts/monitor-platform.sh`: prints a host and container runtime snapshot; use `--watch=3` for a live refresh loop on EC2.
 
