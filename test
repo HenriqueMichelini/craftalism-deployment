@@ -30,7 +30,7 @@ SHORT_SHA="$(git rev-parse --short HEAD 2>/dev/null || echo dev)"
 DEFAULT_TAG="${BRANCH_SLUG}-${SHORT_SHA}"
 DUMMY_DIGEST="sha256:0000000000000000000000000000000000000000000000000000000000000000"
 
-for key in CADDY_VERSION CADDY_DIGEST AUTH_SERVER_VERSION API_VERSION DASHBOARD_VERSION ECONOMY_VERSION AUTH_SERVER_DIGEST API_DIGEST DASHBOARD_DIGEST POSTGRES_VERSION POSTGRES_DIGEST MINECRAFT_IMAGE_VERSION MINECRAFT_IMAGE_DIGEST RCON_PASSWORD; do
+for key in CADDY_VERSION CADDY_DIGEST AUTH_SERVER_VERSION API_VERSION DASHBOARD_VERSION ECONOMY_VERSION MARKET_VERSION AUTH_SERVER_DIGEST API_DIGEST DASHBOARD_DIGEST POSTGRES_VERSION POSTGRES_DIGEST MINECRAFT_IMAGE_VERSION MINECRAFT_IMAGE_DIGEST RCON_PASSWORD; do
   if [[ -z "${!key:-}" ]]; then
     value="$(read_env_var "$key" || true)"
     if [[ -n "$value" ]]; then
@@ -46,13 +46,16 @@ export AUTH_SERVER_GIT_SHA="${AUTH_SERVER_GIT_SHA:-$SHORT_SHA}"
 export API_GIT_SHA="${API_GIT_SHA:-$SHORT_SHA}"
 export DASHBOARD_GIT_SHA="${DASHBOARD_GIT_SHA:-$SHORT_SHA}"
 export ECONOMY_GIT_SHA="${ECONOMY_GIT_SHA:-$SHORT_SHA}"
+export MARKET_GIT_SHA="${MARKET_GIT_SHA:-$SHORT_SHA}"
 export ECONOMY_PLUGIN_JAR="${ECONOMY_PLUGIN_JAR:-$ROOT_DIR/.local-dev/craftalism-economy.jar}"
+export MARKET_PLUGIN_JAR="${MARKET_PLUGIN_JAR:-$ROOT_DIR/.local-dev/craftalism-market.jar}"
 
 # Base compose still validates these required vars even when test overrides images.
 export AUTH_SERVER_VERSION="${AUTH_SERVER_VERSION:-test}"
 export API_VERSION="${API_VERSION:-test}"
 export DASHBOARD_VERSION="${DASHBOARD_VERSION:-test}"
 export ECONOMY_VERSION="${ECONOMY_VERSION:-test}"
+export MARKET_VERSION="${MARKET_VERSION:-test}"
 export CADDY_VERSION="${CADDY_VERSION:-2.9-alpine}"
 export CADDY_DIGEST="${CADDY_DIGEST:-$DUMMY_DIGEST}"
 export AUTH_SERVER_DIGEST="${AUTH_SERVER_DIGEST:-$DUMMY_DIGEST}"
@@ -73,6 +76,11 @@ fi
 if [[ ! -f "$ROOT_DIR/.local-dev/craftalism-economy.jar" ]]; then
   echo "[test] Local economy plugin jar not found. Building..."
   scripts/build-economy-plugin.sh ../craftalism-economy/java
+fi
+
+if [[ ! -f "$ROOT_DIR/.local-dev/craftalism-market.jar" ]]; then
+  echo "[test] Local market plugin jar not found. Building..."
+  scripts/build-market-plugin.sh ../craftalism-market/java
 fi
 
 echo "[test] Using CI tags:"

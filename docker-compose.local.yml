@@ -36,11 +36,13 @@ services:
       - |
         mkdir -p /data/plugins
         install -m 0644 -o minecraft -g minecraft /bootstrap/craftalism-economy.jar /data/plugins/craftalism-economy.jar
+        install -m 0644 -o minecraft -g minecraft /bootstrap/craftalism-market.jar /data/plugins/craftalism-market.jar
         chown minecraft:minecraft /data/plugins
         chmod 775 /data/plugins
     volumes:
       - minecraft_data:/data
       - ${ECONOMY_PLUGIN_JAR:?Set ECONOMY_PLUGIN_JAR to a locally built craftalism-economy jar}:/bootstrap/craftalism-economy.jar:ro
+      - ${MARKET_PLUGIN_JAR:?Set MARKET_PLUGIN_JAR to a locally built craftalism-market jar}:/bootstrap/craftalism-market.jar:ro
 
   minecraft:
     # Dev should use a locally built plugin jar instead of release downloads.

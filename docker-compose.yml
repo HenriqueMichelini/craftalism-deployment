@@ -199,7 +199,8 @@ services:
       CRAFTALISM_API_KEY: ${MINECRAFT_CLIENT_SECRET}
       AUTH_ISSUER_URI: ${AUTH_ISSUER_URI:?Set AUTH_ISSUER_URI to the canonical auth issuer URL}
       PLUGINS: >-
-        https://github.com/HenriqueMichelini/craftalism-economy/releases/download/v${ECONOMY_VERSION:?Set ECONOMY_VERSION to a released plugin version}/craftalism-economy-${ECONOMY_VERSION}.jar
+        https://github.com/HenriqueMichelini/craftalism-economy/releases/download/v${ECONOMY_VERSION:?Set ECONOMY_VERSION to a released plugin version}/craftalism-economy-${ECONOMY_VERSION}.jar,
+        https://github.com/HenriqueMichelini/craftalism-market/releases/download/v${MARKET_VERSION:?Set MARKET_VERSION to a released plugin version}/craftalism-market-${MARKET_VERSION}.jar
     volumes:
       - minecraft_data:/data
     ports:

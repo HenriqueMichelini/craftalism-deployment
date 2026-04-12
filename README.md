@@ -21,7 +21,7 @@ Docker Compose orchestration for the Craftalism platform with **explicitly separ
 - Docker Engine 20.10+
 - Docker Compose v2+
 - Git
-- For local plugin builds: JDK compatible with the economy plugin project
+- For local plugin builds: JDK compatible with the economy and market plugin projects
 
 ---
 
@@ -55,9 +55,11 @@ This deployment repository expects sibling checkouts for local build contexts:
   craftalism-dashboard/
   craftalism-economy/
     java/
+  craftalism-market/
+    java/
 ```
 
-If your layout differs, set `*_BUILD_CONTEXT`, `*_DOCKERFILE`, and `ECONOMY_PLUGIN_JAR` explicitly in `.env` (or exported environment variables). The default local build expects these app subdirectory contexts:
+If your layout differs, set `*_BUILD_CONTEXT`, `*_DOCKERFILE`, `ECONOMY_PLUGIN_JAR`, and `MARKET_PLUGIN_JAR` explicitly in `.env` (or exported environment variables). The default local build expects these app subdirectory contexts:
 
 - `craftalism-authorization-server/java`
 - `craftalism-api/java`
@@ -99,23 +101,26 @@ Optional behavior flags:
 
 ## 1) Local development flow
 
-Use local build contexts for Java/UI services and a locally built Minecraft economy plugin jar.
+Use local build contexts for Java/UI services and locally built Minecraft plugin jars.
 
-### Build the economy plugin locally
+### Build the plugins locally
 
 ```bash
 scripts/build-economy-plugin.sh ../craftalism-economy/java
+scripts/build-market-plugin.sh ../craftalism-market/java
 ```
 
 For a forced clean rebuild when plugin metadata/dependencies changed:
 
 ```bash
 scripts/build-economy-plugin.sh --clean ../craftalism-economy/java
+scripts/build-market-plugin.sh --clean ../craftalism-market/java
 ```
 
 This produces:
 
 - `.local-dev/craftalism-economy.jar`
+- `.local-dev/craftalism-market.jar`
 
 ### Run local stack
 
@@ -124,6 +129,7 @@ export AUTH_SERVER_BUILD_CONTEXT=../craftalism-authorization-server/java
 export API_BUILD_CONTEXT=../craftalism-api/java
 export DASHBOARD_BUILD_CONTEXT=../craftalism-dashboard/react
 export ECONOMY_PLUGIN_JAR=$PWD/.local-dev/craftalism-economy.jar
+export MARKET_PLUGIN_JAR=$PWD/.local-dev/craftalism-market.jar
 export AUTH_SERVER_DOCKERFILE=Dockerfile
 export API_DOCKERFILE=Dockerfile
 export DASHBOARD_DOCKERFILE=Dockerfile
@@ -136,7 +142,7 @@ Notes:
 - The compose local override builds `auth-server`, `api`, and `dashboard` from local source paths.
 - By default those local builds use app subdirectory contexts (`java` for the backend services, `react` for the dashboard) and `Dockerfile` inside each context.
 - If you prefer pointing `*_BUILD_CONTEXT` at a repo root, pair it with the matching subdirectory Dockerfile, for example `AUTH_SERVER_DOCKERFILE=java/Dockerfile`. The `./local` helper normalizes that combination back to the subdirectory context automatically.
-- Minecraft plugin uses local jar mount (`/data/plugins/craftalism-economy.jar`) and does **not** use GitHub Releases in local mode.
+- Minecraft plugins use local jar mounts (`/data/plugins/craftalism-economy.jar` and `/data/plugins/craftalism-market.jar`) and do **not** use GitHub Releases in local mode.
 - If you are iterating heavily on one service, direct IDE execution is recommended while keeping dependencies (Postgres/Auth/API) in Compose.
 - For faster local loops, you can boot only shared dependencies (Postgres/Auth/API):
 
@@ -171,7 +177,9 @@ export AUTH_SERVER_GIT_SHA=a1b2c3d
 export API_GIT_SHA=a1b2c3d
 export DASHBOARD_GIT_SHA=a1b2c3d
 export ECONOMY_GIT_SHA=a1b2c3d
+export MARKET_GIT_SHA=a1b2c3d
 export ECONOMY_PLUGIN_JAR=$PWD/.local-dev/craftalism-economy.jar
+export MARKET_PLUGIN_JAR=$PWD/.local-dev/craftalism-market.jar
 
 docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
 ```
@@ -184,7 +192,7 @@ scripts/prepull-images.sh test
 
 Notes:
 - Test overrides replace service images with commit-tagged CI images.
-- Test still uses a locally built economy plugin artifact (mounted jar), not release download transport.
+- Test still uses locally built plugin artifacts (mounted jars), not release download transport.
 - Commit metadata is attached as labels/environment values so the running commit is obvious.
 
 ---
@@ -203,10 +211,10 @@ docker compose up -d
 
 Production requirements:
 - Publicly expose only `80`, `443`, and `25565` at the EC2/security-group layer. Keep `9000`, `3000`, `8080`, and `25575` private.
-- Set immutable release tags in `.env` (`AUTH_SERVER_VERSION`, `API_VERSION`, `DASHBOARD_VERSION`, `ECONOMY_VERSION`).
+- Set immutable release tags in `.env` (`AUTH_SERVER_VERSION`, `API_VERSION`, `DASHBOARD_VERSION`, `ECONOMY_VERSION`, `MARKET_VERSION`).
 - Set pinned image digests in `.env` (`AUTH_SERVER_DIGEST`, `API_DIGEST`, `DASHBOARD_DIGEST`, `POSTGRES_DIGEST`, `MINECRAFT_IMAGE_DIGEST`).
 - Do **not** use `latest` or unpinned image references.
-- Economy plugin is downloaded from GitHub Releases using `ECONOMY_VERSION` (release artifact path).
+- Economy and market plugins are downloaded from GitHub Releases using `ECONOMY_VERSION` and `MARKET_VERSION`.
 - Image references are configured as `repo:tag@sha256:...` so deployments are immutable by default.
 - `craftalism-infra` owns the public edge proxy, TLS termination, and dashboard basic auth for the EC2 deployment path.
 - `./prod up` fails fast and prints missing variable names when required production configuration is not set.
@@ -237,8 +245,8 @@ curl -f "https://api.craftalism.com/actuator/health"
 ## Compose file responsibilities
 
 - `docker-compose.yml`: production-safe baseline with localhost-only upstream publishing for the infra-managed host edge, plus an optional `standalone-edge` profile.
-- `docker-compose.local.yml`: local source builds + direct local port publishing + local economy plugin jar.
-- `docker-compose.test.yml`: staging/test CI-tagged immutable images + direct test port publishing + local test-built economy plugin jar.
+- `docker-compose.local.yml`: local source builds + direct local port publishing + local economy/market plugin jars.
+- `docker-compose.test.yml`: staging/test CI-tagged immutable images + direct test port publishing + local test-built economy/market plugin jars.
 
 ## License
 

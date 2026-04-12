@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Bootstraps local development dependencies by cloning/updating service repos
-# and building the local economy plugin artifact used by docker-compose.local.yml.
+# and building the local plugin artifacts used by docker-compose.local.yml.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PARENT_DIR="$(dirname "$ROOT_DIR")"
@@ -36,11 +36,14 @@ clone_or_update_repo "craftalism-authorization-server" "${AUTH_SERVER_BRANCH:-$D
 clone_or_update_repo "craftalism-api" "${API_BRANCH:-$DEFAULT_BRANCH}"
 clone_or_update_repo "craftalism-dashboard" "${DASHBOARD_BRANCH:-$DEFAULT_BRANCH}"
 clone_or_update_repo "craftalism-economy" "${ECONOMY_BRANCH:-$DEFAULT_BRANCH}"
+clone_or_update_repo "craftalism-market" "${MARKET_BRANCH:-$DEFAULT_BRANCH}"
 
 if [[ "${CLEAN_PLUGIN_BUILD:-0}" == "1" ]]; then
   "$ROOT_DIR/scripts/build-economy-plugin.sh" --clean "$PARENT_DIR/craftalism-economy/java"
+  "$ROOT_DIR/scripts/build-market-plugin.sh" --clean "$PARENT_DIR/craftalism-market/java"
 else
   "$ROOT_DIR/scripts/build-economy-plugin.sh" "$PARENT_DIR/craftalism-economy/java"
+  "$ROOT_DIR/scripts/build-market-plugin.sh" "$PARENT_DIR/craftalism-market/java"
 fi
 echo
 echo "[bootstrap] Local development dependencies are ready."
@@ -52,3 +55,4 @@ echo "  export AUTH_SERVER_DOCKERFILE=Dockerfile"
 echo "  export API_DOCKERFILE=Dockerfile"
 echo "  export DASHBOARD_DOCKERFILE=Dockerfile"
 echo "  export ECONOMY_PLUGIN_JAR=$ROOT_DIR/.local-dev/craftalism-economy.jar"
+echo "  export MARKET_PLUGIN_JAR=$ROOT_DIR/.local-dev/craftalism-market.jar"
