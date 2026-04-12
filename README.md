@@ -106,15 +106,15 @@ Use local build contexts for Java/UI services and locally built Minecraft plugin
 ### Build the plugins locally
 
 ```bash
-scripts/build-economy-plugin.sh ../craftalism-economy/java
-scripts/build-market-plugin.sh ../craftalism-market/java
+scripts/build-economy-plugin.sh ../craftalism-economy
+scripts/build-market-plugin.sh ../craftalism-market
 ```
 
 For a forced clean rebuild when plugin metadata/dependencies changed:
 
 ```bash
-scripts/build-economy-plugin.sh --clean ../craftalism-economy/java
-scripts/build-market-plugin.sh --clean ../craftalism-market/java
+scripts/build-economy-plugin.sh --clean ../craftalism-economy
+scripts/build-market-plugin.sh --clean ../craftalism-market
 ```
 
 This produces:

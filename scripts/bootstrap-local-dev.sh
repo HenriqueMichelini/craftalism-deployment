@@ -39,11 +39,11 @@ clone_or_update_repo "craftalism-economy" "${ECONOMY_BRANCH:-$DEFAULT_BRANCH}"
 clone_or_update_repo "craftalism-market" "${MARKET_BRANCH:-$DEFAULT_BRANCH}"
 
 if [[ "${CLEAN_PLUGIN_BUILD:-0}" == "1" ]]; then
-  "$ROOT_DIR/scripts/build-economy-plugin.sh" --clean "$PARENT_DIR/craftalism-economy/java"
-  "$ROOT_DIR/scripts/build-market-plugin.sh" --clean "$PARENT_DIR/craftalism-market/java"
+  "$ROOT_DIR/scripts/build-economy-plugin.sh" --clean "$PARENT_DIR/craftalism-economy"
+  "$ROOT_DIR/scripts/build-market-plugin.sh" --clean "$PARENT_DIR/craftalism-market"
 else
-  "$ROOT_DIR/scripts/build-economy-plugin.sh" "$PARENT_DIR/craftalism-economy/java"
-  "$ROOT_DIR/scripts/build-market-plugin.sh" "$PARENT_DIR/craftalism-market/java"
+  "$ROOT_DIR/scripts/build-economy-plugin.sh" "$PARENT_DIR/craftalism-economy"
+  "$ROOT_DIR/scripts/build-market-plugin.sh" "$PARENT_DIR/craftalism-market"
 fi
 echo
 echo "[bootstrap] Local development dependencies are ready."

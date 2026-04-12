@@ -12,17 +12,15 @@ if [[ "${1:-}" == "--clean" ]]; then
   shift
 fi
 
-REPO_DIR="${1:-../craftalism-economy/java}"
+REPO_DIR="${1:-../craftalism-economy}"
 if [[ ! -d "$REPO_DIR" ]]; then
   echo "Repository not found: $REPO_DIR" >&2
   echo "Clone it next to this repo or pass an explicit path." >&2
   exit 1
 fi
 
-if [[ ! -f "$REPO_DIR/gradlew" ]]; then
-  echo "gradlew not found in $REPO_DIR" >&2
-  exit 1
-fi
+SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/scripts/resolve-plugin-source-dir.sh"
+REPO_DIR="$("$SOURCE_DIR" "$REPO_DIR")"
 
 pushd "$REPO_DIR" >/dev/null
 if [[ "$DO_CLEAN" == "1" ]]; then

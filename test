@@ -75,12 +75,12 @@ fi
 
 if [[ ! -f "$ROOT_DIR/.local-dev/craftalism-economy.jar" ]]; then
   echo "[test] Local economy plugin jar not found. Building..."
-  scripts/build-economy-plugin.sh ../craftalism-economy/java
+  scripts/build-economy-plugin.sh ../craftalism-economy
 fi
 
 if [[ ! -f "$ROOT_DIR/.local-dev/craftalism-market.jar" ]]; then
   echo "[test] Local market plugin jar not found. Building..."
-  scripts/build-market-plugin.sh ../craftalism-market/java
+  scripts/build-market-plugin.sh ../craftalism-market
 fi
 
 echo "[test] Using CI tags:"

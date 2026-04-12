@@ -164,6 +164,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Checkout plugin repos for smoke test
+        id: plugin-sources
         shell: bash
         run: |
           checkout_repo() {
@@ -187,8 +188,22 @@ jobs:
           checkout_repo "craftalism-economy" "economy-src"
           checkout_repo "craftalism-market" "market-src"
 
-          test -d economy-src/java || { echo "Missing expected plugin source dir: economy-src/java" >&2; exit 1; }
-          test -d market-src/java || { echo "Missing expected plugin source dir: market-src/java" >&2; exit 1; }
+          resolve_plugin_dir() {
+            local repo_dir="$1"
+            if [[ -f "$repo_dir/gradlew" ]]; then
+              printf '%s\n' "$repo_dir"
+              return 0
+            fi
+            if [[ -f "$repo_dir/java/gradlew" ]]; then
+              printf '%s\n' "$repo_dir/java"
+              return 0
+            fi
+            echo "Missing Gradle plugin project under ${repo_dir} or ${repo_dir}/java" >&2
+            return 1
+          }
+
+          echo "economy_source_dir=$(resolve_plugin_dir economy-src)" >> "$GITHUB_OUTPUT"
+          echo "market_source_dir=$(resolve_plugin_dir market-src)" >> "$GITHUB_OUTPUT"
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -197,20 +212,20 @@ jobs:
           distribution: "temurin"
           cache: gradle
           cache-dependency-path: |
-            economy-src/java/*.gradle*
-            market-src/java/*.gradle*
+            ${{ steps.plugin-sources.outputs.economy_source_dir }}/*.gradle*
+            ${{ steps.plugin-sources.outputs.market_source_dir }}/*.gradle*
 
       - name: Build economy plugin jar for smoke test
         shell: bash
         run: |
           chmod +x scripts/build-economy-plugin.sh
-          scripts/build-economy-plugin.sh economy-src/java
+          scripts/build-economy-plugin.sh "${{ steps.plugin-sources.outputs.economy_source_dir }}"
 
       - name: Build market plugin jar for smoke test
         shell: bash
         run: |
           chmod +x scripts/build-market-plugin.sh
-          scripts/build-market-plugin.sh market-src/java
+          scripts/build-market-plugin.sh "${{ steps.plugin-sources.outputs.market_source_dir }}"
 
       - name: Compute CI image tags
         id: smoke-meta
