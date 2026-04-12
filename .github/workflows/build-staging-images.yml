@@ -156,24 +156,39 @@ jobs:
   smoke-test-stack:
     needs: build-service-images
     runs-on: ubuntu-latest
+    env:
+      PLUGIN_FALLBACK_REF: main
 
     steps:
       - name: Checkout deployment repo
         uses: actions/checkout@v4
 
-      - name: Checkout economy repo
-        uses: actions/checkout@v4
-        with:
-          repository: HenriqueMichelini/craftalism-economy
-          ref: ${{ github.ref_name }}
-          path: economy-src
+      - name: Checkout plugin repos for smoke test
+        shell: bash
+        run: |
+          checkout_repo() {
+            local repo_name="$1"
+            local target_dir="$2"
+            local requested_ref="${GITHUB_REF_NAME}"
+            local fallback_ref="${PLUGIN_FALLBACK_REF}"
+            local repo_url="https://github.com/HenriqueMichelini/${repo_name}.git"
+            local selected_ref="$requested_ref"
 
-      - name: Checkout market repo
-        uses: actions/checkout@v4
-        with:
-          repository: HenriqueMichelini/craftalism-market
-          ref: ${{ github.ref_name }}
-          path: market-src
+            if ! git ls-remote --exit-code --heads "$repo_url" "$requested_ref" >/dev/null 2>&1; then
+              selected_ref="$fallback_ref"
+              echo "[smoke-test] ${repo_name}: branch ${requested_ref} not found, falling back to ${selected_ref}"
+            else
+              echo "[smoke-test] ${repo_name}: using branch ${selected_ref}"
+            fi
+
+            git clone --depth 1 --branch "$selected_ref" "$repo_url" "$target_dir"
+          }
+
+          checkout_repo "craftalism-economy" "economy-src"
+          checkout_repo "craftalism-market" "market-src"
+
+          test -d economy-src/java || { echo "Missing expected plugin source dir: economy-src/java" >&2; exit 1; }
+          test -d market-src/java || { echo "Missing expected plugin source dir: market-src/java" >&2; exit 1; }
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
