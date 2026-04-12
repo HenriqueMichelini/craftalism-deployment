@@ -43,6 +43,7 @@ jobs:
           API_VERSION=local \
           DASHBOARD_VERSION=local \
           ECONOMY_VERSION=local \
+          MARKET_VERSION=local \
           CADDY_VERSION=2.9-alpine \
           CADDY_DIGEST=sha256:0000000000000000000000000000000000000000000000000000000000000000 \
           AUTH_SERVER_DIGEST=sha256:0000000000000000000000000000000000000000000000000000000000000000 \
@@ -60,6 +61,7 @@ jobs:
           RSA_PUBLIC_KEY=placeholder \
           RCON_PASSWORD=placeholder \
           ECONOMY_PLUGIN_JAR=/tmp/craftalism-economy.jar \
+          MARKET_PLUGIN_JAR=/tmp/craftalism-market.jar \
           docker compose -f docker-compose.yml -f docker-compose.local.yml config >/tmp/compose-local.out
 
       - name: Validate test compose interpolation
@@ -69,6 +71,7 @@ jobs:
           API_VERSION=test \
           DASHBOARD_VERSION=test \
           ECONOMY_VERSION=test \
+          MARKET_VERSION=test \
           CADDY_VERSION=2.9-alpine \
           CADDY_DIGEST=sha256:0000000000000000000000000000000000000000000000000000000000000000 \
           AUTH_SERVER_DIGEST=sha256:0000000000000000000000000000000000000000000000000000000000000000 \
@@ -89,6 +92,7 @@ jobs:
           RSA_PUBLIC_KEY=placeholder \
           RCON_PASSWORD=placeholder \
           ECONOMY_PLUGIN_JAR=/tmp/craftalism-economy.jar \
+          MARKET_PLUGIN_JAR=/tmp/craftalism-market.jar \
           docker compose -f docker-compose.yml -f docker-compose.test.yml config >/tmp/compose-test.out
 
   build-service-images:
@@ -164,19 +168,34 @@ jobs:
           ref: ${{ github.ref_name }}
           path: economy-src
 
+      - name: Checkout market repo
+        uses: actions/checkout@v4
+        with:
+          repository: HenriqueMichelini/craftalism-market
+          ref: ${{ github.ref_name }}
+          path: market-src
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           java-version: "21"
           distribution: "temurin"
           cache: gradle
-          cache-dependency-path: economy-src/java/*.gradle*
+          cache-dependency-path: |
+            economy-src/java/*.gradle*
+            market-src/java/*.gradle*
 
       - name: Build economy plugin jar for smoke test
         shell: bash
         run: |
           chmod +x scripts/build-economy-plugin.sh
           scripts/build-economy-plugin.sh economy-src/java
+
+      - name: Build market plugin jar for smoke test
+        shell: bash
+        run: |
+          chmod +x scripts/build-market-plugin.sh
+          scripts/build-market-plugin.sh market-src/java
 
       - name: Compute CI image tags
         id: smoke-meta
@@ -205,7 +224,9 @@ jobs:
           API_GIT_SHA: ${{ github.sha }}
           DASHBOARD_GIT_SHA: ${{ github.sha }}
           ECONOMY_GIT_SHA: ${{ github.sha }}
+          MARKET_GIT_SHA: ${{ github.sha }}
           ECONOMY_PLUGIN_JAR: ${{ github.workspace }}/.local-dev/craftalism-economy.jar
+          MARKET_PLUGIN_JAR: ${{ github.workspace }}/.local-dev/craftalism-market.jar
           MINECRAFT_CLIENT_SECRET: ci-smoke-client-secret
           DB_PASSWORD: ci-smoke-db-password
           RCON_PASSWORD: ci-smoke-rcon-password
@@ -234,7 +255,9 @@ jobs:
           API_GIT_SHA: ${{ github.sha }}
           DASHBOARD_GIT_SHA: ${{ github.sha }}
           ECONOMY_GIT_SHA: ${{ github.sha }}
+          MARKET_GIT_SHA: ${{ github.sha }}
           ECONOMY_PLUGIN_JAR: ${{ github.workspace }}/.local-dev/craftalism-economy.jar
+          MARKET_PLUGIN_JAR: ${{ github.workspace }}/.local-dev/craftalism-market.jar
           MINECRAFT_CLIENT_SECRET: ci-smoke-client-secret
           DB_PASSWORD: ci-smoke-db-password
           RCON_PASSWORD: ci-smoke-rcon-password
