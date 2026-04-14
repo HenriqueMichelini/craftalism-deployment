@@ -176,6 +176,85 @@ services:
       timeout: 5s
       retries: 3
 
+  minecraft-config-init:
+    image: itzg/minecraft-server:${MINECRAFT_IMAGE_VERSION:-java21}@${MINECRAFT_IMAGE_DIGEST:?Set MINECRAFT_IMAGE_DIGEST to a pinned sha256 digest}
+    user: "0:0"
+    restart: "no"
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        mkdir -p /data/plugins/CraftalismMarket
+        cat > /data/plugins/CraftalismMarket/config.yml <<EOF
+        titles:
+          categories: "&8Craftalism Market"
+
+        messages:
+          unavailable-no-cache: "&cThe market is unavailable right now. No cached data is available yet."
+          opened-live: "&aMarket data loaded."
+          opened-read-only: "&6Market browsing is in read-only preview mode."
+          quote-unavailable: "&cQuote data is currently unavailable."
+          execute-unavailable: "&cTrade execution is currently unavailable."
+          trade-disabled: "&cTrading is not available right now."
+          buy-success: "&aPurchased {quantity} item(s) for {total}."
+          buy-overflow: "&ePurchased {quantity} item(s) for {total}. Dropped {dropped} item(s) because your inventory was full."
+          sell-success: "&aSold {quantity} item(s) for {total}."
+          sell-no-items: "&cYou do not have that item in your inventory."
+          sell-quantity-adjusted: "&eAdjusted sell quantity to {quantity} based on your inventory."
+          sell-removal-failed: "&cSell completed economically, but local item removal failed. Contact staff."
+          rejections:
+            STALE_QUOTE: "&eThat quote is stale. Refreshing now."
+            QUOTE_EXPIRED: "&eThat quote expired. Refreshing now."
+            ITEM_BLOCKED: "&cThis item is currently blocked."
+            ITEM_NOT_OPERATING: "&cThis item is not operating right now."
+            INSUFFICIENT_STOCK: "&cThere is not enough stock for that purchase."
+            INSUFFICIENT_FUNDS: "&cYou do not have enough funds for that purchase."
+            MARKET_CLOSED: "&cThe market is currently closed."
+            INVALID_QUANTITY: "&cThat quantity is invalid."
+            RATE_LIMITED: "&cToo many requests. Slow down and try again."
+            API_UNAVAILABLE: "&cThe market API is unavailable right now."
+            UNKNOWN_ITEM: "&cThat item is no longer available."
+
+        market-api:
+          base-url: "${MARKET_API_BASE_URL:-http://craftalism-api:8080}"
+          snapshot-path: "${MARKET_API_SNAPSHOT_PATH:-/market/snapshot}"
+          quote-path: "${MARKET_API_QUOTE_PATH:-/market/quote}"
+          execute-path: "${MARKET_API_EXECUTE_PATH:-/market/execute}"
+          auth-token: "${MARKET_API_AUTH_TOKEN:-}"
+          connect-timeout-ms: ${MARKET_API_CONNECT_TIMEOUT_MS:-3000}
+          request-timeout-ms: ${MARKET_API_REQUEST_TIMEOUT_MS:-5000}
+          quote-debounce-ticks: ${MARKET_API_QUOTE_DEBOUNCE_TICKS:-6}
+
+        market-display:
+          categories:
+            farming:
+              icon: WHEAT
+              description:
+                - "&7Browse staple crops and ranch goods."
+            mining:
+              icon: IRON_PICKAXE
+              description:
+                - "&7Ore and processed metal examples."
+          items:
+            wheat:
+              description:
+                - "&7A common crop traded across the server."
+            bread:
+              description:
+                - "&7Processed food item for the market."
+            iron_ingot:
+              description:
+                - "&7Useful for testing a second category flow."
+            diamond:
+              description:
+                - "&7High-value item shown in informational trade mode."
+        EOF
+        chown -R minecraft:minecraft /data/plugins/CraftalismMarket
+        chmod 755 /data/plugins/CraftalismMarket
+        chmod 644 /data/plugins/CraftalismMarket/config.yml
+    volumes:
+      - minecraft_data:/data
+
   minecraft:
     image: itzg/minecraft-server:${MINECRAFT_IMAGE_VERSION:-java21}@${MINECRAFT_IMAGE_DIGEST:?Set MINECRAFT_IMAGE_DIGEST to a pinned sha256 digest}
     container_name: craftalism-minecraft
@@ -212,6 +291,8 @@ services:
     depends_on:
       api:
         condition: service_healthy
+      minecraft-config-init:
+        condition: service_completed_successfully
     restart: unless-stopped
     stdin_open: true
     tty: true

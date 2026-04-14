@@ -213,6 +213,7 @@ Production requirements:
 - Publicly expose only `80`, `443`, and `25565` at the EC2/security-group layer. Keep `9000`, `3000`, `8080`, and `25575` private.
 - Set immutable release tags in `.env` (`AUTH_SERVER_VERSION`, `API_VERSION`, `DASHBOARD_VERSION`, `ECONOMY_VERSION`, `MARKET_VERSION`).
 - Set pinned image digests in `.env` (`AUTH_SERVER_DIGEST`, `API_DIGEST`, `DASHBOARD_DIGEST`, `POSTGRES_DIGEST`, `MINECRAFT_IMAGE_DIGEST`).
+- Set the Paper market plugin runtime config in `.env` (`MARKET_API_BASE_URL`, `MARKET_API_SNAPSHOT_PATH`, and related `MARKET_API_*` settings). The deployment now seeds `/data/plugins/CraftalismMarket/config.yml` from these values before Paper starts.
 - Do **not** use `latest` or unpinned image references.
 - Economy and market plugins are downloaded from GitHub Releases using `ECONOMY_VERSION` and `MARKET_VERSION`.
 - Image references are configured as `repo:tag@sha256:...` so deployments are immutable by default.
