@@ -24,6 +24,23 @@ read_env_var() {
   awk -F= -v key="$key" '$1 == key {sub(/^[^=]*=/, ""); print; exit}' .env
 }
 
+load_env_var() {
+  local key="$1"
+  if [[ -n "${!key:-}" ]]; then
+    return 0
+  fi
+  local value
+  value="$(read_env_var "$key" || true)"
+  if [[ -n "$value" ]]; then
+    export "$key=$value"
+  fi
+}
+
+load_env_var CRAFTALISM_RUNTIME_PROFILE
+source "$ROOT_DIR/scripts/runtime-profile.sh"
+apply_runtime_profile "${CRAFTALISM_RUNTIME_PROFILE:-small-host}"
+echo "[test] Using runtime profile: ${CRAFTALISM_RUNTIME_PROFILE}"
+
 BRANCH_NAME="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo local)"
 BRANCH_SLUG="${BRANCH_NAME//\//-}"
 SHORT_SHA="$(git rev-parse --short HEAD 2>/dev/null || echo dev)"

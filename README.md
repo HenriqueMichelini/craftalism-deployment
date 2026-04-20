@@ -95,6 +95,7 @@ Optional behavior flags:
 - `SKIP_DIGEST_REFRESH=1 ./prod` to skip automatic digest refresh.
 - `CLEAN_PLUGIN_BUILD=1 ./local` to force clean plugin build via bootstrap.
 - `LOCAL_BUILD_RETRIES=5 ./local` to retry transient local docker builds (default: 3 attempts).
+- `CRAFTALISM_RUNTIME_PROFILE=standard ./prod` to raise deployment-owned memory defaults above the small-host preset.
 - `scripts/resolve-image-digests.sh --env-file .env --mode test --write` to resolve only digests needed by `./test`.
 
 ---
@@ -219,15 +220,16 @@ Production requirements:
 - Image references are configured as `repo:tag@sha256:...` so deployments are immutable by default.
 - `craftalism-infra` owns the public edge proxy, TLS termination, and dashboard basic auth for the EC2 deployment path.
 - `./prod up` fails fast and prints missing variable names when required production configuration is not set.
+- `./prod up` also validates deployment-owned memory budgets so JVM heap/metaspace and Minecraft heap settings leave headroom inside each container limit.
 
 ### Small-instance guidance
 
-For `t3.small` testing, this repo now supports explicit runtime ceilings through `.env`:
+For `t3.small` testing, this repo now supports profile-driven runtime ceilings through `.env`:
 
-- `AUTH_SERVER_JAVA_TOOL_OPTIONS` and `API_JAVA_TOOL_OPTIONS` cap Spring JVM heap growth.
-- `*_MEM_LIMIT` and `*_MEM_RESERVATION` set container-level memory ceilings.
-- `POSTGRES_SHARED_BUFFERS`, `POSTGRES_WORK_MEM`, and `POSTGRES_MAINTENANCE_WORK_MEM` keep the database conservative on low-memory hosts.
-- `MINECRAFT_INIT_MEMORY`, `MINECRAFT_MEMORY`, `MINECRAFT_VIEW_DISTANCE`, and `MINECRAFT_SIMULATION_DISTANCE` now have low-memory-friendly example values in `env.example`.
+- `CRAFTALISM_RUNTIME_PROFILE=small-host` applies conservative defaults for Java, Postgres, dashboard, edge, and Minecraft.
+- `CRAFTALISM_RUNTIME_PROFILE=standard` raises those defaults for less constrained hosts without changing compose files.
+- Per-service env vars still override the selected profile when you need a one-off adjustment.
+- The Java defaults now use container-aware heap percentages, reduced thread stacks, and fail-fast OOM behavior so the container budget remains enforceable.
 
 These defaults are aimed at survival on a hobby-scale `t3.small`. If the host still thrashes or player load is non-trivial, move to `t3.medium`.
 

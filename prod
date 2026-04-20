@@ -70,10 +70,28 @@ require_prod_vars() {
   fi
 }
 
+validate_prod_runtime_memory() {
+  validate_reservation_not_above_limit "auth-server" "${AUTH_SERVER_MEM_LIMIT}" "${AUTH_SERVER_MEM_RESERVATION}"
+  validate_reservation_not_above_limit "api" "${API_MEM_LIMIT}" "${API_MEM_RESERVATION}"
+  validate_reservation_not_above_limit "postgres" "${POSTGRES_MEM_LIMIT}" "${POSTGRES_MEM_RESERVATION}"
+  validate_reservation_not_above_limit "dashboard" "${DASHBOARD_MEM_LIMIT}" "${DASHBOARD_MEM_RESERVATION}"
+  validate_reservation_not_above_limit "edge" "${EDGE_MEM_LIMIT}" "${EDGE_MEM_RESERVATION}"
+  validate_reservation_not_above_limit "minecraft" "${MINECRAFT_MEM_LIMIT}" "${MINECRAFT_MEM_RESERVATION}"
+
+  validate_java_memory_budget "auth-server" "${AUTH_SERVER_JAVA_TOOL_OPTIONS}" "${AUTH_SERVER_MEM_LIMIT}"
+  validate_java_memory_budget "api" "${API_JAVA_TOOL_OPTIONS}" "${API_MEM_LIMIT}"
+  validate_minecraft_memory_budget "${MINECRAFT_INIT_MEMORY}" "${MINECRAFT_MEMORY}" "${MINECRAFT_MEM_LIMIT}"
+}
+
 if [[ ! -f .env ]]; then
   cp env.example .env
   echo "[prod] Created .env from env.example"
 fi
+
+load_env_var CRAFTALISM_RUNTIME_PROFILE
+source "$ROOT_DIR/scripts/runtime-profile.sh"
+apply_runtime_profile "${CRAFTALISM_RUNTIME_PROFILE:-small-host}"
+echo "[prod] Using runtime profile: ${CRAFTALISM_RUNTIME_PROFILE}"
 
 if [[ "$ACTION" == "down" ]]; then
   echo "[prod] Stopping production stack..."
@@ -82,6 +100,7 @@ if [[ "$ACTION" == "down" ]]; then
 fi
 
 require_prod_vars
+validate_prod_runtime_memory
 
 digests_refreshed=0
 if [[ "${SKIP_DIGEST_REFRESH:-0}" != "1" ]]; then

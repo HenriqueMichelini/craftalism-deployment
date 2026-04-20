@@ -31,6 +31,18 @@ read_env_var() {
   awk -F= -v key="$key" '$1 == key {sub(/^[^=]*=/, ""); print; exit}' .env
 }
 
+load_env_var() {
+  local key="$1"
+  if [[ -n "${!key:-}" ]]; then
+    return 0
+  fi
+  local value
+  value="$(read_env_var "$key" || true)"
+  if [[ -n "$value" ]]; then
+    export "$key=$value"
+  fi
+}
+
 normalize_local_build_target() {
   local service_name="$1"
   local context_var="$2"
@@ -72,6 +84,11 @@ if [[ ! -f .env ]]; then
   cp env.example .env
   echo "[local] Created .env from env.example"
 fi
+
+load_env_var CRAFTALISM_RUNTIME_PROFILE
+source "$ROOT_DIR/scripts/runtime-profile.sh"
+apply_runtime_profile "${CRAFTALISM_RUNTIME_PROFILE:-small-host}"
+echo "[local] Using runtime profile: ${CRAFTALISM_RUNTIME_PROFILE}"
 
 # Base compose validates these vars even in local override mode.
 DUMMY_DIGEST="sha256:0000000000000000000000000000000000000000000000000000000000000000"
