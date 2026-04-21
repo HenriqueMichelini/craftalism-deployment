@@ -279,6 +279,7 @@ services:
       MINECRAFT_CLIENT_ID: ${MINECRAFT_CLIENT_ID:-minecraft-server}
       MINECRAFT_CLIENT_SECRET: ${MINECRAFT_CLIENT_SECRET}
       AUTH_ISSUER_URI: ${AUTH_ISSUER_URI:?Set AUTH_ISSUER_URI to the canonical auth issuer URL}
+      AUTH_TOKEN_PATH: ${AUTH_TOKEN_PATH:-http://craftalism-auth-server:9000/oauth2/token}
       PLUGINS: >-
         https://github.com/HenriqueMichelini/craftalism-economy/releases/download/v${ECONOMY_VERSION:?Set ECONOMY_VERSION to a released plugin version}/craftalism-economy-${ECONOMY_VERSION}.jar,
         https://github.com/HenriqueMichelini/craftalism-market/releases/download/v${MARKET_VERSION:?Set MARKET_VERSION to a released plugin version}/craftalism-market-${MARKET_VERSION}.jar
