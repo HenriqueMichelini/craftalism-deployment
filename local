@@ -4,6 +4,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PARENT_DIR="$(dirname "$ROOT_DIR")"
 cd "$ROOT_DIR"
+BASE_ENV_FILE=".env"
+LOCAL_ENV_FILE=".env.local"
+LOCAL_ENV_EXAMPLE=".env.local.example"
 
 ACTIONS_HELP="Usage: ./local [up|down|hot <service>]"
 ACTION="${1:-up}"
@@ -27,17 +30,22 @@ if [[ "$ACTION" == "hot" ]]; then
 fi
 
 read_env_var() {
-  local key="$1"
-  awk -F= -v key="$key" '$1 == key {sub(/^[^=]*=/, ""); print; exit}' .env
+  local file="$1"
+  local key="$2"
+  awk -F= -v key="$key" '$1 == key {sub(/^[^=]*=/, ""); print; exit}' "$file"
 }
 
 load_env_var() {
+  local file="$1"
   local key="$1"
+  if (($# > 1)); then
+    key="$2"
+  fi
   if [[ -n "${!key:-}" ]]; then
     return 0
   fi
   local value
-  value="$(read_env_var "$key" || true)"
+  value="$(read_env_var "$file" "$key" || true)"
   if [[ -n "$value" ]]; then
     export "$key=$value"
   fi
@@ -80,12 +88,20 @@ normalize_local_build_target() {
   export "${dockerfile_var}=${dockerfile}"
 }
 
-if [[ ! -f .env ]]; then
-  cp env.example .env
-  echo "[local] Created .env from env.example"
+if [[ ! -f "$BASE_ENV_FILE" ]]; then
+  cp env.example "$BASE_ENV_FILE"
+  echo "[local] Created $BASE_ENV_FILE from env.example"
 fi
 
-load_env_var CRAFTALISM_RUNTIME_PROFILE
+if [[ ! -f "$LOCAL_ENV_FILE" && -f "$LOCAL_ENV_EXAMPLE" ]]; then
+  cp "$LOCAL_ENV_EXAMPLE" "$LOCAL_ENV_FILE"
+  echo "[local] Created $LOCAL_ENV_FILE from $LOCAL_ENV_EXAMPLE"
+fi
+
+load_env_var "$BASE_ENV_FILE" CRAFTALISM_RUNTIME_PROFILE
+if [[ -f "$LOCAL_ENV_FILE" ]]; then
+  load_env_var "$LOCAL_ENV_FILE" CRAFTALISM_RUNTIME_PROFILE
+fi
 source "$ROOT_DIR/scripts/runtime-profile.sh"
 apply_runtime_profile "${CRAFTALISM_RUNTIME_PROFILE:-small-host}"
 echo "[local] Using runtime profile: ${CRAFTALISM_RUNTIME_PROFILE}"
@@ -94,12 +110,31 @@ echo "[local] Using runtime profile: ${CRAFTALISM_RUNTIME_PROFILE}"
 DUMMY_DIGEST="sha256:0000000000000000000000000000000000000000000000000000000000000000"
 for key in CADDY_VERSION CADDY_DIGEST AUTH_SERVER_VERSION API_VERSION DASHBOARD_VERSION ECONOMY_VERSION MARKET_VERSION AUTH_SERVER_DIGEST API_DIGEST DASHBOARD_DIGEST POSTGRES_VERSION POSTGRES_DIGEST MINECRAFT_IMAGE_VERSION MINECRAFT_IMAGE_DIGEST RCON_PASSWORD; do
   if [[ -z "${!key:-}" ]]; then
-    value="$(read_env_var "$key" || true)"
+    value="$(read_env_var "$BASE_ENV_FILE" "$key" || true)"
+    if [[ -z "$value" && -f "$LOCAL_ENV_FILE" ]]; then
+      value="$(read_env_var "$LOCAL_ENV_FILE" "$key" || true)"
+    fi
     if [[ -n "$value" ]]; then
       export "$key=$value"
     fi
   fi
 done
+
+if [[ -f "$LOCAL_ENV_FILE" ]]; then
+  for key in \
+    AUTH_ISSUER_URI \
+    AUTH_TOKEN_PATH \
+    MINECRAFT_CLIENT_ID \
+    MINECRAFT_CLIENT_SECRET \
+    CRAFTALISM_API_URL \
+    MARKET_API_BASE_URL \
+    RSA_ALLOW_EPHEMERAL \
+    DB_PASSWORD \
+    RSA_PRIVATE_KEY \
+    RSA_PUBLIC_KEY; do
+    load_env_var "$LOCAL_ENV_FILE" "$key"
+  done
+fi
 
 export AUTH_SERVER_VERSION="${AUTH_SERVER_VERSION:-local}"
 export API_VERSION="${API_VERSION:-local}"

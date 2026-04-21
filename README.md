@@ -33,6 +33,14 @@ cp env.example .env
 
 Set required secrets and issuer config (`DB_PASSWORD`, `MINECRAFT_CLIENT_SECRET`, `RSA_PRIVATE_KEY`, `RSA_PUBLIC_KEY`, `AUTH_ISSUER_URI`, etc.) in `.env`.
 
+For local Docker development, keep production-style values in `.env` if you need them, but put container-network overrides in `.env.local`:
+
+```bash
+cp .env.local.example .env.local
+```
+
+`./local` reads `.env` first and then applies `.env.local` overrides, so local auth/API wiring can use internal service URLs such as `http://craftalism-auth-server:9000` without affecting production settings.
+
 For the normal EC2 production path behind `craftalism-infra`, this repo binds
 application upstreams only on loopback and relies on the host Caddy proxy from
 that infra repository to own public `80/443`.
@@ -82,7 +90,7 @@ From repo root, you can now run:
 ```
 
 What each command does:
-- `./local`: bootstraps local sibling repos, builds local plugin jar, and starts local compose (`docker-compose.yml` + `docker-compose.local.yml`).
+- `./local`: bootstraps local sibling repos, builds local plugin jar, reads `.env` plus optional `.env.local` overrides, and starts local compose (`docker-compose.yml` + `docker-compose.local.yml`).
 - `./local down`: stops/removes the local stack with the same compose file set.
 - `./local hot <service>`: rebuilds/restarts only one local service (for example `./local hot dashboard`) without restarting the full stack.
 - `./test`: ensures local plugin jar exists, auto-populates CI tag env vars from current git branch/sha if absent, provides safe defaults for base-compose required vars, refreshes test base-image digests when enabled, and for app services falls back to local `*:local` images when remote CI tags are unavailable.
