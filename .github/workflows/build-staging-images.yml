@@ -18,6 +18,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   OWNER: henriquemichelini
+  SOURCE_REF: ${{ github.head_ref || github.ref_name }}
 
 jobs:
   validate-deployment-wiring:
@@ -103,13 +104,13 @@ jobs:
       matrix:
         include:
           - service: craftalism-api
-            context: https://github.com/HenriqueMichelini/craftalism-api.git#${{ github.ref_name }}:java
+            context: https://github.com/HenriqueMichelini/craftalism-api.git#${{ github.head_ref || github.ref_name }}:java
             file: Dockerfile
           - service: craftalism-authorization-server
-            context: https://github.com/HenriqueMichelini/craftalism-authorization-server.git#${{ github.ref_name }}:java
+            context: https://github.com/HenriqueMichelini/craftalism-authorization-server.git#${{ github.head_ref || github.ref_name }}:java
             file: Dockerfile
           - service: craftalism-dashboard
-            context: https://github.com/HenriqueMichelini/craftalism-dashboard.git#${{ github.ref_name }}:react
+            context: https://github.com/HenriqueMichelini/craftalism-dashboard.git#${{ github.head_ref || github.ref_name }}:react
             file: Dockerfile
 
     steps:
@@ -121,7 +122,7 @@ jobs:
         shell: bash
         run: |
           SHORT_SHA="${GITHUB_SHA::7}"
-          BRANCH_SLUG="$(echo "${GITHUB_REF_NAME}" | tr '[:upper:]' '[:lower:]' | sed 's#[^a-z0-9._-]#-#g')"
+          BRANCH_SLUG="$(echo "${SOURCE_REF}" | tr '[:upper:]' '[:lower:]' | sed 's#[^a-z0-9._-]#-#g')"
           IMAGE_TAG="${BRANCH_SLUG}-${SHORT_SHA}"
           echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
           echo "branch_slug=${BRANCH_SLUG}" >> "$GITHUB_OUTPUT"
@@ -170,7 +171,7 @@ jobs:
           checkout_repo() {
             local repo_name="$1"
             local target_dir="$2"
-            local requested_ref="${GITHUB_REF_NAME}"
+            local requested_ref="${SOURCE_REF}"
             local fallback_ref="${PLUGIN_FALLBACK_REF}"
             local repo_url="https://github.com/HenriqueMichelini/${repo_name}.git"
             local selected_ref="$requested_ref"
@@ -232,7 +233,7 @@ jobs:
         shell: bash
         run: |
           SHORT_SHA="${GITHUB_SHA::7}"
-          BRANCH_SLUG="$(echo "${GITHUB_REF_NAME}" | tr '[:upper:]' '[:lower:]' | sed 's#[^a-z0-9._-]#-#g')"
+          BRANCH_SLUG="$(echo "${SOURCE_REF}" | tr '[:upper:]' '[:lower:]' | sed 's#[^a-z0-9._-]#-#g')"
           IMAGE_TAG="${BRANCH_SLUG}-${SHORT_SHA}"
           echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
           echo "image_tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"

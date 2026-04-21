@@ -33,6 +33,7 @@ load_env_var() {
 
 require_prod_vars() {
   local missing=()
+  local invalid=()
   local required_vars=(
     AUTH_SERVER_VERSION
     AUTH_SERVER_DIGEST
@@ -67,6 +68,85 @@ require_prod_vars() {
     done
     echo "[prod] Set these values in .env or export them before running ./prod up." >&2
     exit 1
+  fi
+
+  reject_placeholder_value invalid DB_PASSWORD
+  reject_placeholder_value invalid MINECRAFT_CLIENT_SECRET
+  reject_placeholder_value invalid RCON_PASSWORD
+  reject_placeholder_value invalid RSA_PRIVATE_KEY
+  reject_placeholder_value invalid RSA_PUBLIC_KEY
+  reject_placeholder_value invalid AUTH_ISSUER_URI
+  reject_latest_version invalid AUTH_SERVER_VERSION
+  reject_latest_version invalid API_VERSION
+  reject_latest_version invalid DASHBOARD_VERSION
+  reject_digest_value invalid AUTH_SERVER_DIGEST
+  reject_digest_value invalid API_DIGEST
+  reject_digest_value invalid DASHBOARD_DIGEST
+  reject_digest_value invalid POSTGRES_DIGEST
+  reject_digest_value invalid MINECRAFT_IMAGE_DIGEST
+  reject_issuer_uri invalid AUTH_ISSUER_URI
+  reject_rsa_placeholder invalid RSA_PRIVATE_KEY
+  reject_rsa_placeholder invalid RSA_PUBLIC_KEY
+
+  if (( ${#invalid[@]} > 0 )); then
+    echo "[prod] Invalid production variables:" >&2
+    for issue in "${invalid[@]}"; do
+      echo "  - $issue" >&2
+    done
+    echo "[prod] Replace placeholder/example values in .env or exported environment before running ./prod up." >&2
+    exit 1
+  fi
+}
+
+reject_placeholder_value() {
+  local -n issues_ref="$1"
+  local key="$2"
+  local value="${!key:-}"
+
+  case "$value" in
+    change_me*|*change_me*|placeholder|*placeholder*|YOUR_*|*YOUR_BASE64_KEY_HERE*|unused-local-*|example|*.example.com|https://auth.example.com)
+      issues_ref+=("$key contains a placeholder/example value")
+      ;;
+  esac
+}
+
+reject_latest_version() {
+  local -n issues_ref="$1"
+  local key="$2"
+  local value="${!key:-}"
+
+  if [[ "$value" == "latest" ]]; then
+    issues_ref+=("$key must be an immutable release tag, not latest")
+  fi
+}
+
+reject_digest_value() {
+  local -n issues_ref="$1"
+  local key="$2"
+  local value="${!key:-}"
+
+  if [[ "$value" == "sha256:replace_with_release_digest" || ! "$value" =~ ^sha256:[a-fA-F0-9]{64}$ ]]; then
+    issues_ref+=("$key must be a pinned sha256 digest")
+  fi
+}
+
+reject_issuer_uri() {
+  local -n issues_ref="$1"
+  local key="$2"
+  local value="${!key:-}"
+
+  if [[ ! "$value" =~ ^https?://[^[:space:]]+$ ]]; then
+    issues_ref+=("$key must be an absolute http(s) URL")
+  fi
+}
+
+reject_rsa_placeholder() {
+  local -n issues_ref="$1"
+  local key="$2"
+  local value="${!key:-}"
+
+  if [[ "$value" != *"-----BEGIN "*" KEY-----"* || "$value" != *"-----END "*" KEY-----"* || "$value" == *"YOUR_BASE64_KEY_HERE"* ]]; then
+    issues_ref+=("$key must contain real single-line PEM key material")
   fi
 }
 
