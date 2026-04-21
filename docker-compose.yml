@@ -217,9 +217,9 @@ services:
 
         market-api:
           base-url: "${MARKET_API_BASE_URL:-http://craftalism-api:8080}"
-          snapshot-path: "${MARKET_API_SNAPSHOT_PATH:-/market/snapshot}"
-          quote-path: "${MARKET_API_QUOTE_PATH:-/market/quote}"
-          execute-path: "${MARKET_API_EXECUTE_PATH:-/market/execute}"
+          snapshot-path: "${MARKET_API_SNAPSHOT_PATH:-/api/market/snapshot}"
+          quote-path: "${MARKET_API_QUOTE_PATH:-/api/market/quotes}"
+          execute-path: "${MARKET_API_EXECUTE_PATH:-/api/market/execute}"
           auth-token: "${MARKET_API_AUTH_TOKEN:-}"
           connect-timeout-ms: ${MARKET_API_CONNECT_TIMEOUT_MS:-3000}
           request-timeout-ms: ${MARKET_API_REQUEST_TIMEOUT_MS:-5000}
