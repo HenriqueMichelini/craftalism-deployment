@@ -42,6 +42,7 @@ services:
     # Dev should use a locally built plugin jar instead of release downloads.
     environment:
       PLUGINS: ""
+      ONLINE_MODE: ${MINECRAFT_ONLINE_MODE:-TRUE}
     depends_on:
       api:
         condition: service_healthy

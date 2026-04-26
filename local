@@ -175,8 +175,20 @@ fi
 if [[ "$ACTION" == "hot" ]]; then
   echo "[local] Hot-starting only service: $HOT_SERVICE"
   if [[ "$HOT_SERVICE" == "minecraft" ]]; then
+    echo "[local] Building minecraft plugin jars..."
+    if [[ "${CLEAN_PLUGIN_BUILD:-0}" == "1" ]]; then
+      scripts/build-economy-plugin.sh --clean "$PARENT_DIR/craftalism-economy"
+      scripts/build-market-plugin.sh --clean "$PARENT_DIR/craftalism-market"
+    else
+      scripts/build-economy-plugin.sh "$PARENT_DIR/craftalism-economy"
+      scripts/build-market-plugin.sh "$PARENT_DIR/craftalism-market"
+    fi
+    echo "[local] Stopping minecraft before refreshing plugin jars..."
+    docker compose -f docker-compose.yml -f docker-compose.local.yml stop minecraft
     echo "[local] Running minecraft local init..."
     docker compose -f docker-compose.yml -f docker-compose.local.yml up --build --no-deps minecraft-init
+    docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build --force-recreate --no-deps minecraft "$@"
+    exit 0
   fi
   docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build --no-deps "$HOT_SERVICE" "$@"
   exit 0
