@@ -1,0 +1,1 @@
+30-minute before/after snapshot showed Postgres PIDs dropping from 21 to 12 and Postgres memory from 48.0MiB to 38.8MiB. API memory dropped from 508.9MiB to 485.9MiB. Auth memory was slightly higher, so JVM/service memory improvements remain inconclusive. Minecraft memory unchanged and should be treated as a separate tuning target.
