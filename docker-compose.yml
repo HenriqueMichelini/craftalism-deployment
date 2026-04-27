@@ -82,6 +82,8 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/authserver
       DB_USER: ${DB_USER:-craftalism}
       DB_PASSWORD: ${DB_PASSWORD}
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${AUTH_SERVER_SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:-4}
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: ${AUTH_SERVER_SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE:-1}
       RSA_PRIVATE_KEY: ${RSA_PRIVATE_KEY}
       RSA_PUBLIC_KEY: ${RSA_PUBLIC_KEY}
       RSA_ALLOW_EPHEMERAL: ${RSA_ALLOW_EPHEMERAL:-false}
@@ -113,11 +115,15 @@ services:
     image: ghcr.io/henriquemichelini/craftalism-api:${API_VERSION:?Set API_VERSION to an immutable release tag}@${API_DIGEST:?Set API_DIGEST to the release image sha256 digest}
     container_name: craftalism-api
     environment:
-      JAVA_TOOL_OPTIONS: ${API_JAVA_TOOL_OPTIONS:--Xms128m -Xmx256m -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m}
+      JAVA_TOOL_OPTIONS: ${API_JAVA_TOOL_OPTIONS:--XX:InitialRAMPercentage=25 -XX:MaxRAMPercentage=45 -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError}
       SPRING_PROFILES_ACTIVE: docker
+      SPRING_JPA_SHOW_SQL: ${API_SPRING_JPA_SHOW_SQL:-false}
+      SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: ${API_SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL:-false}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-craftalism}
       SPRING_DATASOURCE_USERNAME: ${DB_USER:-craftalism}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${API_SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:-5}
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: ${API_SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE:-1}
       AUTH_ISSUER_URI: ${AUTH_ISSUER_URI:?Set AUTH_ISSUER_URI to the canonical auth issuer URL}
     depends_on:
       postgres:
@@ -126,8 +132,8 @@ services:
         condition: service_healthy
     ports:
       - "${API_HOST:-127.0.0.1}:${API_PORT:-3000}:8080"
-    mem_limit: ${API_MEM_LIMIT:-384m}
-    mem_reservation: ${API_MEM_RESERVATION:-256m}
+    mem_limit: ${API_MEM_LIMIT:-512m}
+    mem_reservation: ${API_MEM_RESERVATION:-384m}
     networks:
       - craftalism
     restart: unless-stopped

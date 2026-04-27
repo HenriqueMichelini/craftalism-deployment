@@ -168,8 +168,8 @@ if [[ ! -f .env ]]; then
   echo "[prod] Created .env from env.example"
 fi
 
-load_env_var CRAFTALISM_RUNTIME_PROFILE
 source "$ROOT_DIR/scripts/runtime-profile.sh"
+load_runtime_profile_env_files .env
 apply_runtime_profile "${CRAFTALISM_RUNTIME_PROFILE:-small-host}"
 echo "[prod] Using runtime profile: ${CRAFTALISM_RUNTIME_PROFILE}"
 

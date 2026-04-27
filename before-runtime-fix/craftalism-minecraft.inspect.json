@@ -1,0 +1,339 @@
+[
+    {
+        "Id": "aba20fc2ba1075483f65de30aef381cb46c6fb534d5587ea881cb9a155ac883c",
+        "Created": "2026-04-27T08:04:21.070794074Z",
+        "Path": "/image/scripts/start",
+        "Args": [],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 71561,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-04-27T08:04:53.626391542Z",
+            "FinishedAt": "0001-01-01T00:00:00Z",
+            "Health": {
+                "Status": "healthy",
+                "FailingStreak": 0,
+                "Log": [
+                    {
+                        "Start": "2026-04-27T05:32:16.918521097-03:00",
+                        "End": "2026-04-27T05:32:16.965245836-03:00",
+                        "ExitCode": 0,
+                        "Output": "localhost:25565 : version=Paper 1.21.4 online=1 max=20 motd='Craftalism Economy Server'\n"
+                    },
+                    {
+                        "Start": "2026-04-27T05:32:46.966645282-03:00",
+                        "End": "2026-04-27T05:32:47.003708637-03:00",
+                        "ExitCode": 0,
+                        "Output": "localhost:25565 : version=Paper 1.21.4 online=1 max=20 motd='Craftalism Economy Server'\n"
+                    },
+                    {
+                        "Start": "2026-04-27T05:33:17.006981271-03:00",
+                        "End": "2026-04-27T05:33:17.054320668-03:00",
+                        "ExitCode": 0,
+                        "Output": "localhost:25565 : version=Paper 1.21.4 online=1 max=20 motd='Craftalism Economy Server'\n"
+                    },
+                    {
+                        "Start": "2026-04-27T05:33:47.055669363-03:00",
+                        "End": "2026-04-27T05:33:47.104981446-03:00",
+                        "ExitCode": 0,
+                        "Output": "localhost:25565 : version=Paper 1.21.4 online=1 max=20 motd='Craftalism Economy Server'\n"
+                    },
+                    {
+                        "Start": "2026-04-27T05:34:17.105422832-03:00",
+                        "End": "2026-04-27T05:34:17.154161476-03:00",
+                        "ExitCode": 0,
+                        "Output": "localhost:25565 : version=Paper 1.21.4 online=1 max=20 motd='Craftalism Economy Server'\n"
+                    }
+                ]
+            }
+        },
+        "Image": "sha256:c2331cb35f05cfa7309753953a71f8444abfb0f3123e258a307d37e2881d46f7",
+        "ResolvConfPath": "/var/lib/docker/containers/aba20fc2ba1075483f65de30aef381cb46c6fb534d5587ea881cb9a155ac883c/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/aba20fc2ba1075483f65de30aef381cb46c6fb534d5587ea881cb9a155ac883c/hostname",
+        "HostsPath": "/var/lib/docker/containers/aba20fc2ba1075483f65de30aef381cb46c6fb534d5587ea881cb9a155ac883c/hosts",
+        "LogPath": "/var/lib/docker/containers/aba20fc2ba1075483f65de30aef381cb46c6fb534d5587ea881cb9a155ac883c/aba20fc2ba1075483f65de30aef381cb46c6fb534d5587ea881cb9a155ac883c-json.log",
+        "Name": "/craftalism-minecraft",
+        "RestartCount": 0,
+        "Driver": "overlay2",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "docker-default",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [
+                "craftalism-deployment_minecraft_data:/data:rw"
+            ],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "craftalism-deployment_craftalism",
+            "PortBindings": {
+                "25565/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "25565"
+                    }
+                ],
+                "25575/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "25575"
+                    }
+                ]
+            },
+            "RestartPolicy": {
+                "Name": "unless-stopped",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": null,
+            "DnsSearch": null,
+            "ExtraHosts": [],
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 805306368,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": null,
+            "BlkioDeviceReadBps": null,
+            "BlkioDeviceWriteBps": null,
+            "BlkioDeviceReadIOps": null,
+            "BlkioDeviceWriteIOps": null,
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": null,
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 536870912,
+            "MemorySwap": 1610612736,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "GraphDriver": {
+            "Data": {
+                "ID": "aba20fc2ba1075483f65de30aef381cb46c6fb534d5587ea881cb9a155ac883c",
+                "LowerDir": "/var/lib/docker/overlay2/5dab16f41469b7ae689a6064b1fd69a8a349c8def514d06728a78b034ff693c5-init/diff:/var/lib/docker/overlay2/594520ffe9856f3902712b57da1b1e0b9db58a1f70c757c14e5206c198df2d6e/diff:/var/lib/docker/overlay2/6447caa6c81bb9f1088ff5367c31fe29b7b634f0dbff2b96e4e0a70a92f2346d/diff:/var/lib/docker/overlay2/6222442a73dfdf367f1c12dac3ce91329819657d43e8083d3fb0caf795cfa8f0/diff:/var/lib/docker/overlay2/aee1b33a30f5060cd28d379fcdb4b04aef56f1167f45778f6b5c64c89a64baea/diff:/var/lib/docker/overlay2/fa4d592c4271436d0f66bc07582f0b9a81c3d2b028aa334b0167209a9752757e/diff:/var/lib/docker/overlay2/5be86faa892934e9c0cdb245453652c309cda3fee40ee2053de8122a09bba342/diff:/var/lib/docker/overlay2/1eb46349db15c9d9cf50be924bb5d5a622df5863b7eebf96d73ecd3a5c5daf08/diff:/var/lib/docker/overlay2/0fd44fcbf0bcccbb4a41d3aadb7661770728d58676bfe0f6488749c048dd993f/diff:/var/lib/docker/overlay2/656e1b3aa30f5dbadcbc2cf2ba26813d626978d216d0cc7de8cc6cf15d8e0d8b/diff:/var/lib/docker/overlay2/5b8164d5b1ecd8cfaa03ed349405b06f384aca673321f94555cba1c4c9dd980b/diff:/var/lib/docker/overlay2/6b08ffa6f0f613b90828846b0389b27894670c49f229534f7999f61fe9dc7a79/diff:/var/lib/docker/overlay2/f93ec236877eac77a6fa9bcb65ba0893d7ebfdb21af638790a6bbba4e2b5cccd/diff:/var/lib/docker/overlay2/0d9520785164ac65940b9ceec157bbadf27d28632caa1b9b2284c7f529bed6cd/diff:/var/lib/docker/overlay2/89b6d0184de74ffd42ba3f3128de32efea4d46251a50a4bb48270c6a95ec7213/diff:/var/lib/docker/overlay2/1bd243c1fd1e3be5f995ad1e723af4bd8d1aa035fdded87f233fb2d989b885e3/diff:/var/lib/docker/overlay2/03025c9776e608b123dcc5b260dd9fb81bd4e2c47ec4dc7fbb9fc38bc3d50815/diff:/var/lib/docker/overlay2/abcd8d1f24c088385e91e973a3d3905d60c6f288d54678165f39c35de6bb2aae/diff:/var/lib/docker/overlay2/1f9f727ed446fe2aa3d762e8bd4d39e7f809a65a208df57e1606c3076675c23a/diff:/var/lib/docker/overlay2/aa5065c65851b588e5892fcd6cd543a47c392f44416fc81ad8726e064c7b3e3d/diff:/var/lib/docker/overlay2/d8cd39365aa9f4f41f9eb3c4a2e56d430f6e118a5ffd62e8e967b585636ab8ee/diff:/var/lib/docker/overlay2/9d6017e711daec57640dd14bbb33949e2fc1f1216ec246e46f4d43348b9a4da1/diff:/var/lib/docker/overlay2/ab45f9ff03a76f98a77638daec987c438f91b945999eef01e598fd3f8a4a7be7/diff:/var/lib/docker/overlay2/2d66873d0b57ed1e3088ca3b85b4499f7ac79b47ac0918a99fc45fbb0d7298a1/diff:/var/lib/docker/overlay2/70271069b12681731d545367e9bf5efc9c86196a84654fb450d5cf2ef30f972e/diff:/var/lib/docker/overlay2/27b776b7e9c3ca84adcfed1d8b93dbd0b4ac22ca17051cde55afef8e3aa934e8/diff",
+                "MergedDir": "/var/lib/docker/overlay2/5dab16f41469b7ae689a6064b1fd69a8a349c8def514d06728a78b034ff693c5/merged",
+                "UpperDir": "/var/lib/docker/overlay2/5dab16f41469b7ae689a6064b1fd69a8a349c8def514d06728a78b034ff693c5/diff",
+                "WorkDir": "/var/lib/docker/overlay2/5dab16f41469b7ae689a6064b1fd69a8a349c8def514d06728a78b034ff693c5/work"
+            },
+            "Name": "overlay2"
+        },
+        "Mounts": [
+            {
+                "Type": "volume",
+                "Name": "craftalism-deployment_minecraft_data",
+                "Source": "/var/lib/docker/volumes/craftalism-deployment_minecraft_data/_data",
+                "Destination": "/data",
+                "Driver": "local",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": ""
+            }
+        ],
+        "Config": {
+            "Hostname": "aba20fc2ba10",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "ExposedPorts": {
+                "25565/tcp": {},
+                "25575/tcp": {}
+            },
+            "Tty": true,
+            "OpenStdin": true,
+            "StdinOnce": false,
+            "Env": [
+                "ONLINE_MODE=false",
+                "MINECRAFT_CLIENT_ID=minecraft-server",
+                "MINECRAFT_CLIENT_SECRET=8asjd8a/xdZoo~",
+                "PLUGINS=",
+                "EULA=TRUE",
+                "INIT_MEMORY=512M",
+                "DIFFICULTY=normal",
+                "VERSION=1.21.4",
+                "AUTH_ISSUER_URI=http://craftalism-auth-server:9000",
+                "MOTD=Craftalism Economy Server",
+                "MAX_PLAYERS=20",
+                "ENABLE_RCON=TRUE",
+                "TYPE=PAPER",
+                "SIMULATION_DISTANCE=4",
+                "RCON_PORT=25575",
+                "CRAFTALISM_API_URL=http://craftalism-api:8080",
+                "MEMORY=512M",
+                "MODE=survival",
+                "CRAFTALISM_API_KEY=8asjd8a/xdZoo~",
+                "RCON_PASSWORD=6UbgPiL77mwVtZK/4HnkvA==",
+                "VIEW_DISTANCE=6",
+                "AUTH_TOKEN_PATH=http://craftalism-auth-server:9000/oauth2/token",
+                "PATH=/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "JAVA_HOME=/opt/java/openjdk",
+                "LANG=en_US.UTF-8",
+                "LANGUAGE=en_US:en",
+                "LC_ALL=en_US.UTF-8",
+                "JAVA_VERSION=jdk-21.0.10+7",
+                "UID=1000",
+                "GID=1000"
+            ],
+            "Cmd": null,
+            "Healthcheck": {
+                "Test": [
+                    "CMD-SHELL",
+                    "mc-health"
+                ],
+                "Interval": 30000000000,
+                "StartPeriod": 120000000000,
+                "Retries": 2
+            },
+            "Image": "itzg/minecraft-server:java21@sha256:6e3be0536749f5f5a8f8dc7175fa287930f401147af30f0e14d9e2d0603d8f47",
+            "Volumes": {
+                "/data": {}
+            },
+            "WorkingDir": "/data",
+            "Entrypoint": [
+                "/image/scripts/start"
+            ],
+            "Labels": {
+                "com.docker.compose.config-hash": "f1f29862c14ea82556b002f305eb766113240b146a4c3bb1406b23abaa01704f",
+                "com.docker.compose.container-number": "1",
+                "com.docker.compose.depends_on": "minecraft-init:service_completed_successfully:false,api:service_healthy:false,minecraft-config-init:service_completed_successfully:false",
+                "com.docker.compose.image": "sha256:c2331cb35f05cfa7309753953a71f8444abfb0f3123e258a307d37e2881d46f7",
+                "com.docker.compose.oneoff": "False",
+                "com.docker.compose.project": "craftalism-deployment",
+                "com.docker.compose.project.config_files": "/home/henriquemichelini/IdeaProjects/craftalism-deployment/docker-compose.yml,/home/henriquemichelini/IdeaProjects/craftalism-deployment/docker-compose.local.yml",
+                "com.docker.compose.project.working_dir": "/home/henriquemichelini/IdeaProjects/craftalism-deployment",
+                "com.docker.compose.service": "minecraft",
+                "com.docker.compose.version": "5.1.3",
+                "org.opencontainers.image.authors": "Geoff Bourne <itzgeoff@gmail.com>",
+                "org.opencontainers.image.created": "2026-04-10T02:48:40.513Z",
+                "org.opencontainers.image.description": "Docker image that provides a Minecraft Server for Java Edition that automatically installs/upgrades versions, modloaders, modpacks and more at startup",
+                "org.opencontainers.image.licenses": "Apache-2.0",
+                "org.opencontainers.image.revision": "eb4fe3c7bf9424b0da0a90aaf9677db421e06c26",
+                "org.opencontainers.image.source": "https://github.com/itzg/docker-minecraft-server",
+                "org.opencontainers.image.title": "docker-minecraft-server",
+                "org.opencontainers.image.url": "https://github.com/itzg/docker-minecraft-server",
+                "org.opencontainers.image.version": "java21"
+            },
+            "StopSignal": "SIGTERM"
+        },
+        "NetworkSettings": {
+            "SandboxID": "3d68d6e08d50d1bd3ea03da5f3dd538c09389c963fefa8f0cc70ad3bf7f0ac1e",
+            "SandboxKey": "/var/run/docker/netns/3d68d6e08d50",
+            "Ports": {
+                "25565/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "25565"
+                    },
+                    {
+                        "HostIp": "::",
+                        "HostPort": "25565"
+                    }
+                ],
+                "25575/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "25575"
+                    },
+                    {
+                        "HostIp": "::",
+                        "HostPort": "25575"
+                    }
+                ]
+            },
+            "Networks": {
+                "craftalism-deployment_craftalism": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": [
+                        "craftalism-minecraft",
+                        "minecraft"
+                    ],
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "639973fd187422304c9b3339cfde0e8a1c59ea47400d8adc63b6f8d2f0935fef",
+                    "EndpointID": "06e060eb6af0914e2381f10f1d7ddc6deb220698db14940770bb4f2e975e55d5",
+                    "Gateway": "172.19.0.1",
+                    "IPAddress": "172.19.0.6",
+                    "MacAddress": "12:68:9a:33:9a:35",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": [
+                        "craftalism-minecraft",
+                        "minecraft",
+                        "aba20fc2ba10"
+                    ]
+                }
+            }
+        }
+    }
+]

@@ -1,0 +1,293 @@
+[
+    {
+        "Id": "938931f791617f83bd5588a4d0db720329855e4b629b44385c6652dfa9cd05f7",
+        "Created": "2026-04-27T08:35:33.838428393Z",
+        "Path": "java",
+        "Args": [
+            "-XX:+UseContainerSupport",
+            "-XX:MaxRAMPercentage=75.0",
+            "-Djava.security.egd=file:/dev/./urandom",
+            "-jar",
+            "app.jar"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 89263,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-04-27T08:35:45.26171312Z",
+            "FinishedAt": "0001-01-01T00:00:00Z",
+            "Health": {
+                "Status": "healthy",
+                "FailingStreak": 0,
+                "Log": [
+                    {
+                        "Start": "2026-04-27T05:35:50.373945247-03:00",
+                        "End": "2026-04-27T05:35:50.411686883-03:00",
+                        "ExitCode": 1,
+                        "Output": "wget: can't connect to remote host: Connection refused\n"
+                    },
+                    {
+                        "Start": "2026-04-27T05:35:55.412549119-03:00",
+                        "End": "2026-04-27T05:35:55.601001749-03:00",
+                        "ExitCode": 0,
+                        "Output": "{\"status\":\"UP\"}"
+                    },
+                    {
+                        "Start": "2026-04-27T05:36:25.602177857-03:00",
+                        "End": "2026-04-27T05:36:25.640262762-03:00",
+                        "ExitCode": 0,
+                        "Output": "{\"status\":\"UP\"}"
+                    },
+                    {
+                        "Start": "2026-04-27T05:36:55.641213251-03:00",
+                        "End": "2026-04-27T05:36:55.694048417-03:00",
+                        "ExitCode": 0,
+                        "Output": "{\"status\":\"UP\"}"
+                    },
+                    {
+                        "Start": "2026-04-27T05:37:25.696462898-03:00",
+                        "End": "2026-04-27T05:37:25.743963504-03:00",
+                        "ExitCode": 0,
+                        "Output": "{\"status\":\"UP\"}"
+                    }
+                ]
+            }
+        },
+        "Image": "sha256:190cb18dad353c189eeab5d84cf37a1d7f4bd6da1036d0ae5226467e602fdc1c",
+        "ResolvConfPath": "/var/lib/docker/containers/938931f791617f83bd5588a4d0db720329855e4b629b44385c6652dfa9cd05f7/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/938931f791617f83bd5588a4d0db720329855e4b629b44385c6652dfa9cd05f7/hostname",
+        "HostsPath": "/var/lib/docker/containers/938931f791617f83bd5588a4d0db720329855e4b629b44385c6652dfa9cd05f7/hosts",
+        "LogPath": "/var/lib/docker/containers/938931f791617f83bd5588a4d0db720329855e4b629b44385c6652dfa9cd05f7/938931f791617f83bd5588a4d0db720329855e4b629b44385c6652dfa9cd05f7-json.log",
+        "Name": "/craftalism-auth-server",
+        "RestartCount": 0,
+        "Driver": "overlay2",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "docker-default",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": null,
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "craftalism-deployment_craftalism",
+            "PortBindings": {
+                "9000/tcp": [
+                    {
+                        "HostIp": "127.0.0.1",
+                        "HostPort": "9000"
+                    }
+                ]
+            },
+            "RestartPolicy": {
+                "Name": "unless-stopped",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": null,
+            "DnsSearch": null,
+            "ExtraHosts": [],
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 268435456,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": null,
+            "BlkioDeviceReadBps": null,
+            "BlkioDeviceWriteBps": null,
+            "BlkioDeviceReadIOps": null,
+            "BlkioDeviceWriteIOps": null,
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": null,
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 201326592,
+            "MemorySwap": 536870912,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "GraphDriver": {
+            "Data": {
+                "ID": "938931f791617f83bd5588a4d0db720329855e4b629b44385c6652dfa9cd05f7",
+                "LowerDir": "/var/lib/docker/overlay2/be284bb7be66bd47d75a30b945a1ba259ea81b47d055c6b64e1c83e65e2488d3-init/diff:/var/lib/docker/overlay2/q3b2feo38gyy6mupg58nr79u7/diff:/var/lib/docker/overlay2/t74ka4tue7ybzhxtltq7nr1lx/diff:/var/lib/docker/overlay2/vtgak0vkvyxnts4o3zhutpaju/diff:/var/lib/docker/overlay2/rxbt7dh4vmjlrqehct3702gh7/diff:/var/lib/docker/overlay2/b3b40136d9b9d15824795e89bcc416cae270f4664cec3c1c0f346c723d8067b9/diff:/var/lib/docker/overlay2/3f9125b949ad1eb7dde27341e06246b79b1525afb77da52d523f6b845518cb3a/diff:/var/lib/docker/overlay2/6167bdc3b24ab9c99d3193d2b7b7c89bd9c231dbd7f74b9961db5967b7608278/diff:/var/lib/docker/overlay2/e1de679e713de7395e31c5a9878d294174923a8e3158dd5b321cd7943337db1a/diff:/var/lib/docker/overlay2/e399cf157005ed9434e177d402c908724bf7da7abe0507e2b87e9346fc579cd0/diff",
+                "MergedDir": "/var/lib/docker/overlay2/be284bb7be66bd47d75a30b945a1ba259ea81b47d055c6b64e1c83e65e2488d3/merged",
+                "UpperDir": "/var/lib/docker/overlay2/be284bb7be66bd47d75a30b945a1ba259ea81b47d055c6b64e1c83e65e2488d3/diff",
+                "WorkDir": "/var/lib/docker/overlay2/be284bb7be66bd47d75a30b945a1ba259ea81b47d055c6b64e1c83e65e2488d3/work"
+            },
+            "Name": "overlay2"
+        },
+        "Mounts": [],
+        "Config": {
+            "Hostname": "938931f79161",
+            "Domainname": "",
+            "User": "appuser",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "ExposedPorts": {
+                "9000/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "DB_PASSWORD=qz4CEl6d2ExZPB0gCNOlMo9/ALvFK1ueqGJeDJDd8zg=",
+                "SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=4",
+                "DB_USER=craftalism",
+                "RSA_ALLOW_EPHEMERAL=true",
+                "JAVA_TOOL_OPTIONS=-XX:InitialRAMPercentage=25 -XX:MaxRAMPercentage=45 -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m -XX:+ExitOnOutOfMemoryError",
+                "RSA_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC55tKLaTcGISX5\\n87e9tREcDFvsR7iB3K6EvWV1opwT3w7MxwEkK/WLCFsIOFR8amYObQhJeinKGjNZ\\nWjYkzilZQ5ytr34KQiMib7xm0/rsIPyyx0URVMGSSpk018llu6lFlrvXeMGgj0U+\\nQ1BrJrbDtJEfE1xIE3RX8XDNkf9sjqvkFc+3Qr1/RqGabLhs8JbeCuXxR1qZmIim\\nzRXa3jrLlz2jWI1JOkseV3T6H/UPP4hDjUkmsL1X9tmmH/YFkiuzSJGXxXRPFr6Y\\n8XSRQrGjcNB7s3yXj0aSWKWKFFrMPdCwCwmdR2J0rBcxTjbZJwn9tct+CzYxmRmq\\nKHTIYkuvAgMBAAECggEANgEij+JQXET78clFyuQTZNkISTMqm/sebaxRkaNcAP/P\\nHlj/cWEd0zZpr5EhpgUIwc8V1baZ9j63RRFKYlXLuEVGekRdcqB08XeRPTP+lGMe\\n1dbCrz62fweRy0KWnKmwCmm4BufrI/gK7wQCFCaqeF73u5XVvJB+P2AB2446q++k\\nHoYoK4Zo0E3azp6MaqkEExuLEBzR3BM7QJU0W+C2+vA9jmzMop8xh1G7vcwQ4EVH\\nVRG39F47RQe2h8BgXQLeV4cXal5k2HtJdG/+uUx7mXc6Wjv5nGAC6HfG0tLTuLCH\\npTECfpkZR7T9m+7expMNsQ/SwtX22FfdGDLP4tU8dQKBgQD/BrkjY3x6IoQO5tKY\\n10TxLXMBgLrPMDT7dPJJpvDWO0Kdsocn9nY0ti+aPjutEJrlWwYK/o91CFrQjuA8\\nq/OAcS5xVHC9kuvQM6kNHfBdRHfxSV8TxbkL2gp0ZA18AdrBNZyH3mzALs2XA94+\\nZiyMzoSdq3WR4EiCNIUtTF6m4wKBgQC6nIhzv7itfEhwBE87o0kyK3jV43UFOXAJ\\n9Aq/mjhYXaXhtHqgCBEL0wf6lNiKR/bmeNP7Nmahb+oxLo2HwSCal75Joaq9wXh1\\nIDxtiaqzcCAaspWLy75zx7ncRD0sUNdarKpcc0wYt+5/aX1MwlCThG+DKISHYiyA\\nkqZWUFvVxQKBgHhb4fCTuWGi/JRT17yOjFkOzCI/cOrro3Wxoc+k3DEfUrc+VI9F\\nwE/sU9cF3AA3wALSzK1PqsDfKo0XgTjhJlDOGc8evP6bYnOmjfhE0vYRpFHaAOdB\\n/61aQGjh94M5FNbuyGtPTB//dsP47WChtBDYPrpy+0/XfCEHTHsuedVlAoGAYVG1\\nD7hSlZcVJ+X3dECpsZJeSB2BL6JOvcIZwOaqr9rW4ah/sunCCgqaRKJPc34oUvV8\\nh6xNRa/Z0KBYiw269SRhxoCbTK6TJXIUUYPUFBRLieDMgMVWo4brdOXZiTz3soAN\\nsH0omFOD+8qF3/wOjYApr5r30qruTncsbCMoYYkCgYEAsPAttLne+X917r4J8Jq6\\nG8liBFGwWi3W5fc9rDtNvr3/4i69I85XK059vGMrdxmNebbgV7SfALJ19Zi5wDcy\\n9CEwDMbPoyBjLQTgZjkaT8ChNuYLDOacE6e0oTsMFHMpshnB/Hu0BJGzMuHn4cEO\\nGzBiyESoDfxB+RWtmWshdsU=\\n-----END PRIVATE KEY-----\\n",
+                "MINECRAFT_CLIENT_ID=minecraft-server",
+                "RSA_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----\\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuebSi2k3BiEl+fO3vbUR\\nHAxb7Ee4gdyuhL1ldaKcE98OzMcBJCv1iwhbCDhUfGpmDm0ISXopyhozWVo2JM4p\\nWUOcra9+CkIjIm+8ZtP67CD8ssdFEVTBkkqZNNfJZbupRZa713jBoI9FPkNQaya2\\nw7SRHxNcSBN0V/FwzZH/bI6r5BXPt0K9f0ahmmy4bPCW3grl8UdamZiIps0V2t46\\ny5c9o1iNSTpLHld0+h/1Dz+IQ41JJrC9V/bZph/2BZIrs0iRl8V0Txa+mPF0kUKx\\no3DQe7N8l49GklilihRazD3QsAsJnUdidKwXMU422ScJ/bXLfgs2MZkZqih0yGJL\\nrwIDAQAB\\n-----END PUBLIC KEY-----\\n",
+                "DB_URL=jdbc:postgresql://postgres:5432/authserver",
+                "AUTH_ISSUER_URI=http://craftalism-auth-server:9000",
+                "MINECRAFT_CLIENT_SECRET=8asjd8a/xdZoo~",
+                "SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=1",
+                "PATH=/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "JAVA_HOME=/opt/java/openjdk",
+                "LANG=en_US.UTF-8",
+                "LANGUAGE=en_US:en",
+                "LC_ALL=en_US.UTF-8",
+                "JAVA_VERSION=jdk-17.0.18+8"
+            ],
+            "Cmd": null,
+            "Healthcheck": {
+                "Test": [
+                    "CMD-SHELL",
+                    "wget -qO- http://localhost:9000/actuator/health || exit 1"
+                ],
+                "Interval": 30000000000,
+                "Timeout": 10000000000,
+                "StartPeriod": 40000000000,
+                "Retries": 3
+            },
+            "Image": "craftalism-authorization-server:local",
+            "Volumes": null,
+            "WorkingDir": "/app",
+            "Entrypoint": [
+                "java",
+                "-XX:+UseContainerSupport",
+                "-XX:MaxRAMPercentage=75.0",
+                "-Djava.security.egd=file:/dev/./urandom",
+                "-jar",
+                "app.jar"
+            ],
+            "Labels": {
+                "com.docker.compose.config-hash": "68645b6c82c5dba81b27908e1d2210d9c07e0966aa23961b18e240e3d3dc6d20",
+                "com.docker.compose.container-number": "1",
+                "com.docker.compose.depends_on": "auth-db-init:service_completed_successfully:false",
+                "com.docker.compose.image": "sha256:190cb18dad353c189eeab5d84cf37a1d7f4bd6da1036d0ae5226467e602fdc1c",
+                "com.docker.compose.oneoff": "False",
+                "com.docker.compose.project": "craftalism-deployment",
+                "com.docker.compose.project.config_files": "/home/henriquemichelini/IdeaProjects/craftalism-deployment/docker-compose.yml,/home/henriquemichelini/IdeaProjects/craftalism-deployment/docker-compose.local.yml",
+                "com.docker.compose.project.working_dir": "/home/henriquemichelini/IdeaProjects/craftalism-deployment",
+                "com.docker.compose.service": "auth-server",
+                "com.docker.compose.version": "5.1.3"
+            }
+        },
+        "NetworkSettings": {
+            "SandboxID": "a0f23d7713094dff4248ec23d69dccc116b38aa61df48f7e361aff9364262a72",
+            "SandboxKey": "/var/run/docker/netns/a0f23d771309",
+            "Ports": {
+                "9000/tcp": [
+                    {
+                        "HostIp": "127.0.0.1",
+                        "HostPort": "9000"
+                    }
+                ]
+            },
+            "Networks": {
+                "craftalism-deployment_craftalism": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": [
+                        "craftalism-auth-server",
+                        "auth-server"
+                    ],
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "5c079428b746bd9b7cea350591c0a039d16162264d20576d7a9aa4dd5af98224",
+                    "EndpointID": "6e169c8b78df2395f9475c8ec683906cfed7910702f3b253c61fc82389266385",
+                    "Gateway": "172.20.0.1",
+                    "IPAddress": "172.20.0.3",
+                    "MacAddress": "c6:df:bf:05:cd:b5",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": [
+                        "craftalism-auth-server",
+                        "auth-server",
+                        "938931f79161"
+                    ]
+                }
+            }
+        }
+    }
+]

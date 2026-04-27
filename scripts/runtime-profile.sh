@@ -8,6 +8,80 @@ set_default_var() {
   fi
 }
 
+RUNTIME_PROFILE_ENV_KEYS=(
+  CRAFTALISM_RUNTIME_PROFILE
+  AUTH_SERVER_JAVA_TOOL_OPTIONS
+  AUTH_SERVER_MEM_LIMIT
+  AUTH_SERVER_MEM_RESERVATION
+  AUTH_SERVER_SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE
+  AUTH_SERVER_SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE
+  API_JAVA_TOOL_OPTIONS
+  API_MEM_LIMIT
+  API_MEM_RESERVATION
+  API_SPRING_JPA_SHOW_SQL
+  API_SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL
+  API_SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE
+  API_SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE
+  POSTGRES_SHARED_BUFFERS
+  POSTGRES_WORK_MEM
+  POSTGRES_MAINTENANCE_WORK_MEM
+  POSTGRES_MEM_LIMIT
+  POSTGRES_MEM_RESERVATION
+  DASHBOARD_MEM_LIMIT
+  DASHBOARD_MEM_RESERVATION
+  EDGE_MEM_LIMIT
+  EDGE_MEM_RESERVATION
+  MINECRAFT_INIT_MEMORY
+  MINECRAFT_MEMORY
+  MINECRAFT_VIEW_DISTANCE
+  MINECRAFT_SIMULATION_DISTANCE
+  MINECRAFT_MEM_LIMIT
+  MINECRAFT_MEM_RESERVATION
+)
+
+read_runtime_env_var() {
+  local file="$1"
+  local key="$2"
+  awk -F= -v key="$key" '$1 == key {sub(/^[^=]*=/, ""); print; exit}' "$file"
+}
+
+load_runtime_profile_env_files() {
+  local base_file="$1"
+  local override_file="${2:-}"
+  local key value
+  local -A externally_set=()
+
+  for key in "${RUNTIME_PROFILE_ENV_KEYS[@]}"; do
+    if [[ -n "${!key:-}" ]]; then
+      externally_set["$key"]=1
+    fi
+  done
+
+  if [[ -f "$base_file" ]]; then
+    for key in "${RUNTIME_PROFILE_ENV_KEYS[@]}"; do
+      if [[ -n "${externally_set[$key]:-}" ]]; then
+        continue
+      fi
+      value="$(read_runtime_env_var "$base_file" "$key" || true)"
+      if [[ -n "$value" ]]; then
+        export "$key=$value"
+      fi
+    done
+  fi
+
+  if [[ -n "$override_file" && -f "$override_file" ]]; then
+    for key in "${RUNTIME_PROFILE_ENV_KEYS[@]}"; do
+      if [[ -n "${externally_set[$key]:-}" ]]; then
+        continue
+      fi
+      value="$(read_runtime_env_var "$override_file" "$key" || true)"
+      if [[ -n "$value" ]]; then
+        export "$key=$value"
+      fi
+    done
+  fi
+}
+
 apply_runtime_profile() {
   local profile="${1:-small-host}"
 
@@ -16,9 +90,13 @@ apply_runtime_profile() {
       set_default_var AUTH_SERVER_JAVA_TOOL_OPTIONS "-XX:InitialRAMPercentage=25 -XX:MaxRAMPercentage=45 -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m -XX:+ExitOnOutOfMemoryError"
       set_default_var AUTH_SERVER_MEM_LIMIT "256m"
       set_default_var AUTH_SERVER_MEM_RESERVATION "192m"
-      set_default_var API_JAVA_TOOL_OPTIONS "-XX:InitialRAMPercentage=25 -XX:MaxRAMPercentage=55 -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError"
-      set_default_var API_MEM_LIMIT "384m"
-      set_default_var API_MEM_RESERVATION "256m"
+      set_default_var AUTH_SERVER_SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE "4"
+      set_default_var AUTH_SERVER_SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE "1"
+      set_default_var API_JAVA_TOOL_OPTIONS "-XX:InitialRAMPercentage=25 -XX:MaxRAMPercentage=45 -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError"
+      set_default_var API_MEM_LIMIT "512m"
+      set_default_var API_MEM_RESERVATION "384m"
+      set_default_var API_SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE "5"
+      set_default_var API_SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE "1"
       set_default_var POSTGRES_SHARED_BUFFERS "128MB"
       set_default_var POSTGRES_WORK_MEM "4MB"
       set_default_var POSTGRES_MAINTENANCE_WORK_MEM "64MB"
@@ -39,9 +117,13 @@ apply_runtime_profile() {
       set_default_var AUTH_SERVER_JAVA_TOOL_OPTIONS "-XX:InitialRAMPercentage=25 -XX:MaxRAMPercentage=50 -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError"
       set_default_var AUTH_SERVER_MEM_LIMIT "384m"
       set_default_var AUTH_SERVER_MEM_RESERVATION "256m"
-      set_default_var API_JAVA_TOOL_OPTIONS "-XX:InitialRAMPercentage=25 -XX:MaxRAMPercentage=55 -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=160m -XX:+ExitOnOutOfMemoryError"
-      set_default_var API_MEM_LIMIT "512m"
-      set_default_var API_MEM_RESERVATION "384m"
+      set_default_var AUTH_SERVER_SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE "6"
+      set_default_var AUTH_SERVER_SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE "1"
+      set_default_var API_JAVA_TOOL_OPTIONS "-XX:InitialRAMPercentage=25 -XX:MaxRAMPercentage=45 -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=160m -XX:+ExitOnOutOfMemoryError"
+      set_default_var API_MEM_LIMIT "768m"
+      set_default_var API_MEM_RESERVATION "512m"
+      set_default_var API_SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE "8"
+      set_default_var API_SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE "1"
       set_default_var POSTGRES_SHARED_BUFFERS "192MB"
       set_default_var POSTGRES_WORK_MEM "8MB"
       set_default_var POSTGRES_MAINTENANCE_WORK_MEM "96MB"
@@ -159,7 +241,7 @@ validate_java_memory_budget() {
   local service_name="$1"
   local options="$2"
   local limit_raw="$3"
-  local limit_mb heap_mb metaspace_mb budget_mb xms_mb
+  local limit_mb heap_mb metaspace_mb budget_mb xms_mb native_headroom_mb
 
   limit_mb="$(parse_memory_mb "$limit_raw")" || {
     echo "[prod] ${service_name} memory limit is invalid: ${limit_raw}" >&2
@@ -190,9 +272,14 @@ validate_java_memory_budget() {
     fi
   fi
 
-  budget_mb=$((heap_mb + metaspace_mb + 32))
+  native_headroom_mb=32
+  if [[ "$service_name" == "api" ]]; then
+    native_headroom_mb=128
+  fi
+
+  budget_mb=$((heap_mb + metaspace_mb + native_headroom_mb))
   if (( budget_mb >= limit_mb )); then
-    echo "[prod] ${service_name} JVM budget (${budget_mb}MiB) leaves no native headroom inside ${limit_raw}." >&2
+    echo "[prod] ${service_name} JVM budget (${budget_mb}MiB) leaves less than ${native_headroom_mb}MiB native headroom inside ${limit_raw}." >&2
     echo "[prod] Lower heap/metaspace settings or raise the container memory limit for ${service_name}." >&2
     return 1
   fi

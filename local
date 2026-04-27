@@ -98,11 +98,8 @@ if [[ ! -f "$LOCAL_ENV_FILE" && -f "$LOCAL_ENV_EXAMPLE" ]]; then
   echo "[local] Created $LOCAL_ENV_FILE from $LOCAL_ENV_EXAMPLE"
 fi
 
-load_env_var "$BASE_ENV_FILE" CRAFTALISM_RUNTIME_PROFILE
-if [[ -f "$LOCAL_ENV_FILE" ]]; then
-  load_env_var "$LOCAL_ENV_FILE" CRAFTALISM_RUNTIME_PROFILE
-fi
 source "$ROOT_DIR/scripts/runtime-profile.sh"
+load_runtime_profile_env_files "$BASE_ENV_FILE" "$LOCAL_ENV_FILE"
 apply_runtime_profile "${CRAFTALISM_RUNTIME_PROFILE:-small-host}"
 echo "[local] Using runtime profile: ${CRAFTALISM_RUNTIME_PROFILE}"
 

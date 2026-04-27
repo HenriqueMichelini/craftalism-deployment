@@ -1,0 +1,5 @@
+    PID    PPID COMMAND         COMMAND
+      1       0 mc-server-runne mc-server-runner --stop-duration 60s java -Xmx512M -Xms512M -jar /data/paper-1.21.4-232.jar
+    482       1 java            java -Xmx512M -Xms512M -jar /data/paper-1.21.4-232.jar
+    661       0 sh              sh -c ps -eo pid,ppid,comm,args 2>/dev/null
+    667     661 ps              ps -eo pid,ppid,comm,args

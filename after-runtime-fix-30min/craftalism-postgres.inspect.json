@@ -1,0 +1,304 @@
+[
+    {
+        "Id": "a3842fe62f2a09e297d028bbd23cd02b4873b21951b3123a12cf72f222b1845e",
+        "Created": "2026-04-27T08:35:33.780244448Z",
+        "Path": "docker-entrypoint.sh",
+        "Args": [
+            "postgres",
+            "-c",
+            "shared_buffers=128MB",
+            "-c",
+            "work_mem=4MB",
+            "-c",
+            "maintenance_work_mem=64MB"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 88844,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-04-27T08:35:33.940498103Z",
+            "FinishedAt": "0001-01-01T00:00:00Z",
+            "Health": {
+                "Status": "healthy",
+                "FailingStreak": 0,
+                "Log": [
+                    {
+                        "Start": "2026-04-27T05:55:08.726884123-03:00",
+                        "End": "2026-04-27T05:55:08.764862578-03:00",
+                        "ExitCode": 0,
+                        "Output": "/var/run/postgresql:5432 - accepting connections\n"
+                    },
+                    {
+                        "Start": "2026-04-27T05:55:18.767276852-03:00",
+                        "End": "2026-04-27T05:55:18.800909245-03:00",
+                        "ExitCode": 0,
+                        "Output": "/var/run/postgresql:5432 - accepting connections\n"
+                    },
+                    {
+                        "Start": "2026-04-27T05:55:28.801965029-03:00",
+                        "End": "2026-04-27T05:55:28.84704217-03:00",
+                        "ExitCode": 0,
+                        "Output": "/var/run/postgresql:5432 - accepting connections\n"
+                    },
+                    {
+                        "Start": "2026-04-27T05:55:38.85026401-03:00",
+                        "End": "2026-04-27T05:55:38.894737782-03:00",
+                        "ExitCode": 0,
+                        "Output": "/var/run/postgresql:5432 - accepting connections\n"
+                    },
+                    {
+                        "Start": "2026-04-27T05:55:48.895674957-03:00",
+                        "End": "2026-04-27T05:55:48.932788754-03:00",
+                        "ExitCode": 0,
+                        "Output": "/var/run/postgresql:5432 - accepting connections\n"
+                    }
+                ]
+            }
+        },
+        "Image": "sha256:ff4a089dadda5e50a5f09604b2e2bc16f97d5befb6b05c328fc21159da96c602",
+        "ResolvConfPath": "/var/lib/docker/containers/a3842fe62f2a09e297d028bbd23cd02b4873b21951b3123a12cf72f222b1845e/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/a3842fe62f2a09e297d028bbd23cd02b4873b21951b3123a12cf72f222b1845e/hostname",
+        "HostsPath": "/var/lib/docker/containers/a3842fe62f2a09e297d028bbd23cd02b4873b21951b3123a12cf72f222b1845e/hosts",
+        "LogPath": "/var/lib/docker/containers/a3842fe62f2a09e297d028bbd23cd02b4873b21951b3123a12cf72f222b1845e/a3842fe62f2a09e297d028bbd23cd02b4873b21951b3123a12cf72f222b1845e-json.log",
+        "Name": "/craftalism-postgres",
+        "RestartCount": 0,
+        "Driver": "overlay2",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "docker-default",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [
+                "craftalism-deployment_postgres_data:/var/lib/postgresql/data:rw"
+            ],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "craftalism-deployment_craftalism",
+            "PortBindings": {},
+            "RestartPolicy": {
+                "Name": "unless-stopped",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": null,
+            "DnsSearch": null,
+            "ExtraHosts": [],
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 268435456,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": null,
+            "BlkioDeviceReadBps": null,
+            "BlkioDeviceWriteBps": null,
+            "BlkioDeviceReadIOps": null,
+            "BlkioDeviceWriteIOps": null,
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": null,
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 134217728,
+            "MemorySwap": 536870912,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "GraphDriver": {
+            "Data": {
+                "ID": "a3842fe62f2a09e297d028bbd23cd02b4873b21951b3123a12cf72f222b1845e",
+                "LowerDir": "/var/lib/docker/overlay2/4ce659d194cdd4ccb10d8eead021d52e198ef6ac062c29aaa8624a104697a361-init/diff:/var/lib/docker/overlay2/ec0e975b048b0d9d1f9dcd711010b7250e3629e39cae9f78cd30478bd5431b94/diff:/var/lib/docker/overlay2/71d38fb3bf2bf784e3f2178a48983f2ccf87a29d3b0c5dcf82affb014ff5ad17/diff:/var/lib/docker/overlay2/fc8e9f8e55368d0c4291aae1287a381568a7ba039f5ebaaad78c8d79f0598985/diff:/var/lib/docker/overlay2/ac28463595b773bbc6742baab51d5ab64c04a0c2afe18f6859f77624976279b6/diff:/var/lib/docker/overlay2/d2216b3523a7520eb697d095eb82b80421f774a4d91b69a9bc09dd4a99bcfce1/diff:/var/lib/docker/overlay2/b2249d276753ed8a054fddb2e56a10fb74db8b3dd68307388887208031af6272/diff:/var/lib/docker/overlay2/de6301426dd16a85c2d94d595fc261936c12238056acd4224d87bab6fe205244/diff:/var/lib/docker/overlay2/8d8ee7e8bf2cbc263b10adc29ba4770301979e80eb3e3216a736faebb1824abf/diff:/var/lib/docker/overlay2/f553198155c929ec34cfef5abd434195947821d26b8c6862c80d441d7701ae93/diff",
+                "MergedDir": "/var/lib/docker/overlay2/4ce659d194cdd4ccb10d8eead021d52e198ef6ac062c29aaa8624a104697a361/merged",
+                "UpperDir": "/var/lib/docker/overlay2/4ce659d194cdd4ccb10d8eead021d52e198ef6ac062c29aaa8624a104697a361/diff",
+                "WorkDir": "/var/lib/docker/overlay2/4ce659d194cdd4ccb10d8eead021d52e198ef6ac062c29aaa8624a104697a361/work"
+            },
+            "Name": "overlay2"
+        },
+        "Mounts": [
+            {
+                "Type": "volume",
+                "Name": "5b80836e6ccbccfc06bf1f18cebff7ff8f9b03a264ab1ba7d2e8465799e5eee1",
+                "Source": "/var/lib/docker/volumes/5b80836e6ccbccfc06bf1f18cebff7ff8f9b03a264ab1ba7d2e8465799e5eee1/_data",
+                "Destination": "/var/lib/postgresql",
+                "Driver": "local",
+                "Mode": "",
+                "RW": true,
+                "Propagation": ""
+            },
+            {
+                "Type": "volume",
+                "Name": "craftalism-deployment_postgres_data",
+                "Source": "/var/lib/docker/volumes/craftalism-deployment_postgres_data/_data",
+                "Destination": "/var/lib/postgresql/data",
+                "Driver": "local",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": ""
+            }
+        ],
+        "Config": {
+            "Hostname": "a3842fe62f2a",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "ExposedPorts": {
+                "5432/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "POSTGRES_USER=craftalism",
+                "POSTGRES_PASSWORD=qz4CEl6d2ExZPB0gCNOlMo9/ALvFK1ueqGJeDJDd8zg=",
+                "PGDATA=/var/lib/postgresql/data/pgdata",
+                "POSTGRES_DB=craftalism",
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "GOSU_VERSION=1.19",
+                "LANG=en_US.utf8",
+                "PG_MAJOR=18",
+                "PG_VERSION=18.3",
+                "PG_SHA256=d95663fbbf3a80f81a9d98d895266bdcb74ba274bcc04ef6d76630a72dee016f",
+                "DOCKER_PG_LLVM_DEPS=llvm19-dev \t\tclang19"
+            ],
+            "Cmd": [
+                "postgres",
+                "-c",
+                "shared_buffers=128MB",
+                "-c",
+                "work_mem=4MB",
+                "-c",
+                "maintenance_work_mem=64MB"
+            ],
+            "Healthcheck": {
+                "Test": [
+                    "CMD-SHELL",
+                    "pg_isready -U craftalism"
+                ],
+                "Interval": 10000000000,
+                "Timeout": 5000000000,
+                "Retries": 5
+            },
+            "Image": "postgres:18-alpine@sha256:4da1a4828be12604092fa55311276f08f9224a74a62dcb4708bd7439e2a03911",
+            "Volumes": {
+                "/var/lib/postgresql": {}
+            },
+            "WorkingDir": "/",
+            "Entrypoint": [
+                "docker-entrypoint.sh"
+            ],
+            "Labels": {
+                "com.docker.compose.config-hash": "69ac0f5b69ac35335522cd92fe898c90534ffaaed80b13ef5887b2134a0085dc",
+                "com.docker.compose.container-number": "1",
+                "com.docker.compose.depends_on": "",
+                "com.docker.compose.image": "sha256:ff4a089dadda5e50a5f09604b2e2bc16f97d5befb6b05c328fc21159da96c602",
+                "com.docker.compose.oneoff": "False",
+                "com.docker.compose.project": "craftalism-deployment",
+                "com.docker.compose.project.config_files": "/home/henriquemichelini/IdeaProjects/craftalism-deployment/docker-compose.yml,/home/henriquemichelini/IdeaProjects/craftalism-deployment/docker-compose.local.yml",
+                "com.docker.compose.project.working_dir": "/home/henriquemichelini/IdeaProjects/craftalism-deployment",
+                "com.docker.compose.service": "postgres",
+                "com.docker.compose.version": "5.1.3"
+            },
+            "StopSignal": "SIGINT"
+        },
+        "NetworkSettings": {
+            "SandboxID": "37d43e2d9139bb26711c27a4bf0935d1b00e03db71b3eaac153d5449130e16e5",
+            "SandboxKey": "/var/run/docker/netns/37d43e2d9139",
+            "Ports": {
+                "5432/tcp": null
+            },
+            "Networks": {
+                "craftalism-deployment_craftalism": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": [
+                        "craftalism-postgres",
+                        "postgres"
+                    ],
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "5c079428b746bd9b7cea350591c0a039d16162264d20576d7a9aa4dd5af98224",
+                    "EndpointID": "8f160497e9f6ce5f1b5abdee757c8ea951d92a92dd356703460cba952ced672e",
+                    "Gateway": "172.20.0.1",
+                    "IPAddress": "172.20.0.2",
+                    "MacAddress": "2a:3a:8f:00:69:4d",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": [
+                        "craftalism-postgres",
+                        "postgres",
+                        "a3842fe62f2a"
+                    ]
+                }
+            }
+        }
+    }
+]
