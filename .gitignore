@@ -36,3 +36,13 @@ temp/
 .docker/
 
 *.jar
+
+# Runtime diagnostics
+runtime-snapshot-*/
+runtime-snapshot-*.tar.gz
+before-runtime-fix/
+before-runtime-fix.tar.gz
+after-runtime-fix/
+after-runtime-fix.tar.gz
+after-runtime-fix-30min/
+after-runtime-fix-30min.tar.gz

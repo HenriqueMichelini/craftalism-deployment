@@ -30,7 +30,11 @@ jobs:
       - name: Validate script syntax
         shell: bash
         run: |
-          bash -n local test prod scripts/*.sh
+          bash -n local test prod scripts/*.sh diagnostics/runtime-snapshots/snapshot.sh gather-market-config-logs.sh
+
+      - name: Check repository hygiene
+        shell: bash
+        run: scripts/check-repository-hygiene.sh
 
       - name: Validate production compose interpolation
         shell: bash

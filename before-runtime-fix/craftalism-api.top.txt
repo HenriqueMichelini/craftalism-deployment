@@ -1,2 +1,0 @@
-USER                PID                 %CPU                %MEM                VSZ                 RSS                 TTY                 STAT                START               TIME                COMMAND
-dhcpcd              71236               2.3                 3.2                 12946252            531420              ?                   SNsl                05:04               0:42                java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom -jar app.jar

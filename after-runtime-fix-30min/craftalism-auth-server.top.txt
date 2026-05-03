@@ -1,2 +1,0 @@
-USER                PID                 %CPU                %MEM                VSZ                 RSS                 TTY                 STAT                START               TIME                COMMAND
-dhcpcd              89263               1.6                 1.5                 12823996            255392              ?                   SNsl                05:35               0:20                java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom -jar app.jar

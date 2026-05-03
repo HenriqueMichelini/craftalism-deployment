@@ -1,3 +1,0 @@
-USER                PID                 %CPU                %MEM                VSZ                 RSS                 TTY                 STAT                START               TIME                COMMAND
-henriqu+            71561               0.0                 0.0                 1233580             4248                pts/0               SNsl+               05:04               0:00                mc-server-runner --stop-duration 60s java -Xmx512M -Xms512M -jar /data/paper-1.21.4-232.jar
-henriqu+            72195               7.4                 4.8                 6655820             793560              pts/0               SNl+                05:05               2:12                java -Xmx512M -Xms512M -jar /data/paper-1.21.4-232.jar

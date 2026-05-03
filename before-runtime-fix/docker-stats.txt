@@ -1,6 +1,0 @@
-CONTAINER ID   NAME                     CPU %     MEM USAGE / LIMIT   MEM %     NET I/O           BLOCK I/O         PIDS
-aba20fc2ba10   craftalism-minecraft     0.79%     757.2MiB / 768MiB   98.59%    3.2MB / 11.6MB    1.36GB / 778MB    57
-25dbdf3c3a11   craftalism-dashboard     0.00%     10.73MiB / 96MiB    11.17%    1.5kB / 126B      197kB / 16.4kB    13
-d95425701cc0   craftalism-api           0.03%     508.9MiB / 512MiB   99.40%    10.1MB / 1.2MB    264MB / 493MB     32
-0cf79c343b26   craftalism-auth-server   0.03%     226.3MiB / 256MiB   88.42%    37.6kB / 54.1kB   513MB / 470MB     32
-a041a92a506c   craftalism-postgres      0.00%     48MiB / 256MiB      18.75%    818kB / 9.63MB    2.88MB / 8.41MB   21
