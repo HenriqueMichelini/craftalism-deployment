@@ -37,6 +37,7 @@ load_env_var() {
 }
 
 source "$ROOT_DIR/scripts/runtime-profile.sh"
+source "$ROOT_DIR/scripts/docker-compose.sh"
 load_runtime_profile_env_files .env
 apply_runtime_profile "${CRAFTALISM_RUNTIME_PROFILE:-small-host}"
 echo "[test] Using runtime profile: ${CRAFTALISM_RUNTIME_PROFILE}"
@@ -86,7 +87,7 @@ export RCON_PASSWORD="${RCON_PASSWORD:-test-rcon-password}"
 
 if [[ "$ACTION" == "down" ]]; then
   echo "[test] Stopping test stack..."
-  docker compose -f docker-compose.yml -f docker-compose.test.yml down "$@"
+  docker_compose -f docker-compose.yml -f docker-compose.test.yml down "$@"
   exit 0
 fi
 
@@ -153,4 +154,4 @@ ensure_test_image "api" "craftalism-api:local" "ghcr.io/henriquemichelini/crafta
 ensure_test_image "dashboard" "craftalism-dashboard:local" "ghcr.io/henriquemichelini/craftalism-dashboard:${DASHBOARD_CI_TAG}"
 
 echo "[test] Starting test stack..."
-docker compose -f docker-compose.yml -f docker-compose.test.yml up -d "$@"
+docker_compose -f docker-compose.yml -f docker-compose.test.yml up -d "$@"

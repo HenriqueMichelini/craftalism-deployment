@@ -3,10 +3,12 @@ set -euo pipefail
 
 OUT_DIR="${1:-runtime-snapshot-$(date +%Y%m%d-%H%M%S)}"
 mkdir -p "$OUT_DIR"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+source "$ROOT_DIR/scripts/docker-compose.sh"
 
 echo "Writing snapshot to: $OUT_DIR"
 
-docker compose ps > "$OUT_DIR/compose-ps.txt" || true
+docker_compose ps > "$OUT_DIR/compose-ps.txt" || true
 docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' > "$OUT_DIR/docker-ps.txt"
 docker stats --no-stream > "$OUT_DIR/docker-stats.txt"
 docker system df > "$OUT_DIR/docker-system-df.txt"

@@ -169,13 +169,14 @@ if [[ ! -f .env ]]; then
 fi
 
 source "$ROOT_DIR/scripts/runtime-profile.sh"
+source "$ROOT_DIR/scripts/docker-compose.sh"
 load_runtime_profile_env_files .env
 apply_runtime_profile "${CRAFTALISM_RUNTIME_PROFILE:-small-host}"
 echo "[prod] Using runtime profile: ${CRAFTALISM_RUNTIME_PROFILE}"
 
 if [[ "$ACTION" == "down" ]]; then
   echo "[prod] Stopping production stack..."
-  docker compose down "$@"
+  docker_compose down "$@"
   exit 0
 fi
 
@@ -199,4 +200,4 @@ else
 fi
 
 echo "[prod] Starting production stack..."
-docker compose up -d "$@"
+docker_compose up -d "$@"

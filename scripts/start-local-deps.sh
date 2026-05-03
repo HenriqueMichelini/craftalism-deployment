@@ -7,6 +7,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
+source "$ROOT_DIR/scripts/docker-compose.sh"
 
 ACTION="${1:-up}"
 
@@ -52,13 +53,13 @@ DEPENDENCY_SERVICES=(
 
 case "$ACTION" in
   up)
-    docker compose -f docker-compose.yml -f docker-compose.local.yml up -d "${DEPENDENCY_SERVICES[@]}"
+    docker_compose -f docker-compose.yml -f docker-compose.local.yml up -d "${DEPENDENCY_SERVICES[@]}"
     ;;
   down)
-    docker compose -f docker-compose.yml -f docker-compose.local.yml stop "${DEPENDENCY_SERVICES[@]}"
+    docker_compose -f docker-compose.yml -f docker-compose.local.yml stop "${DEPENDENCY_SERVICES[@]}"
     ;;
   restart)
-    docker compose -f docker-compose.yml -f docker-compose.local.yml restart "${DEPENDENCY_SERVICES[@]}"
+    docker_compose -f docker-compose.yml -f docker-compose.local.yml restart "${DEPENDENCY_SERVICES[@]}"
     ;;
   *)
     echo "Unknown action: $ACTION" >&2

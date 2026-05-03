@@ -99,6 +99,7 @@ if [[ ! -f "$LOCAL_ENV_FILE" && -f "$LOCAL_ENV_EXAMPLE" ]]; then
 fi
 
 source "$ROOT_DIR/scripts/runtime-profile.sh"
+source "$ROOT_DIR/scripts/docker-compose.sh"
 load_runtime_profile_env_files "$BASE_ENV_FILE" "$LOCAL_ENV_FILE"
 apply_runtime_profile "${CRAFTALISM_RUNTIME_PROFILE:-small-host}"
 echo "[local] Using runtime profile: ${CRAFTALISM_RUNTIME_PROFILE}"
@@ -165,7 +166,7 @@ normalize_local_build_target "dashboard" DASHBOARD_BUILD_CONTEXT DASHBOARD_DOCKE
 
 if [[ "$ACTION" == "down" ]]; then
   echo "[local] Stopping local stack..."
-  docker compose -f docker-compose.yml -f docker-compose.local.yml down "$@"
+  docker_compose -f docker-compose.yml -f docker-compose.local.yml down "$@"
   exit 0
 fi
 
@@ -181,13 +182,13 @@ if [[ "$ACTION" == "hot" ]]; then
       scripts/build-market-plugin.sh "$PARENT_DIR/craftalism-market"
     fi
     echo "[local] Stopping minecraft before refreshing plugin jars..."
-    docker compose -f docker-compose.yml -f docker-compose.local.yml stop minecraft
+    docker_compose -f docker-compose.yml -f docker-compose.local.yml stop minecraft
     echo "[local] Running minecraft local init..."
-    docker compose -f docker-compose.yml -f docker-compose.local.yml up --build --no-deps minecraft-init
-    docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build --force-recreate --no-deps minecraft "$@"
+    docker_compose -f docker-compose.yml -f docker-compose.local.yml up --build --no-deps minecraft-init
+    docker_compose -f docker-compose.yml -f docker-compose.local.yml up -d --build --force-recreate --no-deps minecraft "$@"
     exit 0
   fi
-  docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build --no-deps "$HOT_SERVICE" "$@"
+  docker_compose -f docker-compose.yml -f docker-compose.local.yml up -d --build --no-deps "$HOT_SERVICE" "$@"
   exit 0
 fi
 
@@ -201,15 +202,18 @@ run_local_up() {
 
   while true; do
     echo "[local] Starting local stack (attempt ${attempt}/${max_attempts})..."
-    local compose_status=0
-    if docker compose -f docker-compose.yml -f docker-compose.local.yml up --build "$@"; then
+    local compose_status
+    set +e
+    docker_compose -f docker-compose.yml -f docker-compose.local.yml up --build "$@"
+    compose_status=$?
+    set -e
+    if (( compose_status == 0 )); then
       return 0
     fi
-    compose_status=$?
 
     # If services are still running, user most likely detached/interrupted logs.
     # Do not retry `up`, because that can restart containers unexpectedly.
-    if docker compose -f docker-compose.yml -f docker-compose.local.yml ps --status running -q | grep -q .; then
+    if docker_compose -f docker-compose.yml -f docker-compose.local.yml ps --status running -q | grep -q .; then
       echo "[local] Compose exited with status ${compose_status}, but stack is still running. Skipping retry." >&2
       return "$compose_status"
     fi
