@@ -149,6 +149,7 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
 
 Notes:
 - The compose local override builds `auth-server`, `api`, and `dashboard` from local source paths.
+- Dashboard write actions go through the deployment-owned `dashboard-bff` service. Set `DASHBOARD_BFF_CLIENT_SECRET` in `.env` to the same server-side secret registered by `craftalism-authorization-server`; do not expose it to browser runtime configuration.
 - By default those local builds use app subdirectory contexts (`java` for the backend services, `react` for the dashboard) and `Dockerfile` inside each context.
 - If you prefer pointing `*_BUILD_CONTEXT` at a repo root, pair it with the matching subdirectory Dockerfile, for example `AUTH_SERVER_DOCKERFILE=java/Dockerfile`. The `./local` helper normalizes that combination back to the subdirectory context automatically.
 - Minecraft plugins use local jar mounts (`/data/plugins/craftalism-economy.jar` and `/data/plugins/craftalism-market.jar`) and do **not** use GitHub Releases in local mode.
@@ -159,6 +160,23 @@ Notes:
 scripts/start-local-deps.sh up
 scripts/start-local-deps.sh down
 ```
+
+### Verify dashboard writes locally
+
+After the local stack is running, create, update, and delete a player or balance from the dashboard at `http://localhost:8080/`.
+
+Expected path:
+
+```text
+browser -> dashboard /api/dashboard/... -> dashboard-bff -> auth-server /oauth2/token -> api /api/...
+```
+
+Verification checks:
+
+- `dashboard-bff` is healthy in `docker compose ps`.
+- The browser network panel shows writes to `/api/dashboard/players` or `/api/dashboard/balances`.
+- API writes still reach canonical `/api/players` and `/api/balances` only from `dashboard-bff` with a Bearer token.
+- `DASHBOARD_BFF_CLIENT_SECRET` does not appear in browser JavaScript, runtime config, or network payloads.
 
 ---
 

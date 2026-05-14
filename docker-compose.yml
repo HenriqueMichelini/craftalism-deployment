@@ -89,6 +89,8 @@ services:
       RSA_ALLOW_EPHEMERAL: ${RSA_ALLOW_EPHEMERAL:-false}
       MINECRAFT_CLIENT_ID: ${MINECRAFT_CLIENT_ID:-minecraft-server}
       MINECRAFT_CLIENT_SECRET: ${MINECRAFT_CLIENT_SECRET}
+      DASHBOARD_BFF_CLIENT_ID: ${DASHBOARD_BFF_CLIENT_ID:-dashboard-bff}
+      DASHBOARD_BFF_CLIENT_SECRET: ${DASHBOARD_BFF_CLIENT_SECRET:?Set DASHBOARD_BFF_CLIENT_SECRET to the dashboard-bff OAuth client secret}
       AUTH_ISSUER_URI: ${AUTH_ISSUER_URI:?Set AUTH_ISSUER_URI to the canonical auth issuer URL}
     depends_on:
       auth-db-init:
@@ -158,9 +160,10 @@ services:
     environment:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
       VITE_API_TIMEOUT: ${VITE_API_TIMEOUT:-10000}
-      API_UPSTREAM_URL: ${API_UPSTREAM_URL:-http://api:8080}
+      API_UPSTREAM_URL: ${DASHBOARD_BFF_UPSTREAM_URL:-http://dashboard-bff:8080}
     depends_on:
-      - api
+      dashboard-bff:
+        condition: service_healthy
     ports:
       - "${DASHBOARD_HOST:-127.0.0.1}:${DASHBOARD_PORT:-8080}:80"
     mem_limit: ${DASHBOARD_MEM_LIMIT:-96m}
@@ -177,6 +180,41 @@ services:
           "--tries=1",
           "--spider",
           "http://localhost:80/",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  dashboard-bff:
+    image: ${DASHBOARD_BFF_IMAGE:-craftalism-dashboard-bff:local}
+    build:
+      context: ./dashboard-bff
+      dockerfile: Dockerfile
+    container_name: craftalism-dashboard-bff
+    environment:
+      API_UPSTREAM_URL: ${API_UPSTREAM_URL:-http://api:8080}
+      DASHBOARD_BFF_TOKEN_URL: ${DASHBOARD_BFF_TOKEN_URL:-http://auth-server:9000/oauth2/token}
+      DASHBOARD_BFF_CLIENT_ID: ${DASHBOARD_BFF_CLIENT_ID:-dashboard-bff}
+      DASHBOARD_BFF_CLIENT_SECRET: ${DASHBOARD_BFF_CLIENT_SECRET:?Set DASHBOARD_BFF_CLIENT_SECRET to the dashboard-bff OAuth client secret}
+    depends_on:
+      api:
+        condition: service_healthy
+      auth-server:
+        condition: service_healthy
+    mem_limit: ${DASHBOARD_BFF_MEM_LIMIT:-128m}
+    mem_reservation: ${DASHBOARD_BFF_MEM_RESERVATION:-64m}
+    networks:
+      - craftalism
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/health",
         ]
       interval: 30s
       timeout: 5s

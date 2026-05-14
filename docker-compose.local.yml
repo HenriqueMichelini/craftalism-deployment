@@ -19,6 +19,12 @@ services:
       context: ${DASHBOARD_BUILD_CONTEXT:-../craftalism-dashboard/react}
       dockerfile: ${DASHBOARD_DOCKERFILE:-Dockerfile}
 
+  dashboard-bff:
+    image: craftalism-dashboard-bff:local
+    build:
+      context: ./dashboard-bff
+      dockerfile: Dockerfile
+
   minecraft-init:
     # Local-only one-shot init that prepares the named volume permissions and plugin jar.
     image: itzg/minecraft-server:${MINECRAFT_IMAGE_VERSION:-java21}@${MINECRAFT_IMAGE_DIGEST:?Set MINECRAFT_IMAGE_DIGEST to a pinned sha256 digest}
