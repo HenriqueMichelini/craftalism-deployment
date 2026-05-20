@@ -61,6 +61,7 @@ jobs:
           AUTH_ISSUER_URI=http://craftalism-auth-server:9000 \
           DB_USER=craftalism \
           DB_PASSWORD=placeholder \
+          DASHBOARD_BFF_CLIENT_SECRET=placeholder \
           MINECRAFT_CLIENT_SECRET=placeholder \
           RSA_PRIVATE_KEY=placeholder \
           RSA_PUBLIC_KEY=placeholder \
@@ -92,6 +93,7 @@ jobs:
           AUTH_ISSUER_URI=http://craftalism-auth-server:9000 \
           DB_USER=craftalism \
           DB_PASSWORD=placeholder \
+          DASHBOARD_BFF_CLIENT_SECRET=placeholder \
           MINECRAFT_CLIENT_SECRET=placeholder \
           RSA_PRIVATE_KEY=placeholder \
           RSA_PUBLIC_KEY=placeholder \
