@@ -31,6 +31,41 @@ load_env_var() {
   fi
 }
 
+load_optional_env_var() {
+  local key="$1"
+  if [[ -n "${!key:-}" ]]; then
+    return 0
+  fi
+  local value
+  value="$(read_env_var "$key" || true)"
+  if [[ -n "$value" ]]; then
+    export "$key=$value"
+  fi
+}
+
+configure_prod_compose() {
+  load_optional_env_var CRAFTALISM_PROD_VARIANT
+  CRAFTALISM_PROD_VARIANT="${CRAFTALISM_PROD_VARIANT:-base}"
+
+  PROD_COMPOSE_ARGS=(--env-file .env -f docker-compose.yml)
+  case "$CRAFTALISM_PROD_VARIANT" in
+    base)
+      ;;
+    friend-paper)
+      if [[ ! -f .env.friend-paper ]]; then
+        cp env.friend-paper.example .env.friend-paper
+        echo "[prod] Created .env.friend-paper from env.friend-paper.example"
+      fi
+      PROD_COMPOSE_ARGS+=(--env-file .env.friend-paper -f docker-compose.friend-paper.yml)
+      ;;
+    *)
+      echo "[prod] Unknown CRAFTALISM_PROD_VARIANT: ${CRAFTALISM_PROD_VARIANT}" >&2
+      echo "[prod] Supported variants: base, friend-paper" >&2
+      exit 1
+      ;;
+  esac
+}
+
 require_prod_vars() {
   local missing=()
   local invalid=()
@@ -170,13 +205,15 @@ fi
 
 source "$ROOT_DIR/scripts/runtime-profile.sh"
 source "$ROOT_DIR/scripts/docker-compose.sh"
+configure_prod_compose
 load_runtime_profile_env_files .env
 apply_runtime_profile "${CRAFTALISM_RUNTIME_PROFILE:-small-host}"
 echo "[prod] Using runtime profile: ${CRAFTALISM_RUNTIME_PROFILE}"
+echo "[prod] Using production variant: ${CRAFTALISM_PROD_VARIANT}"
 
 if [[ "$ACTION" == "down" ]]; then
   echo "[prod] Stopping production stack..."
-  docker_compose down "$@"
+  docker_compose "${PROD_COMPOSE_ARGS[@]}" down "$@"
   exit 0
 fi
 
@@ -196,8 +233,8 @@ if [[ "$digests_refreshed" == "1" ]]; then
   echo "[prod] Skipping extra pre-pull because digest refresh already pulled the production images."
 else
   echo "[prod] Pre-pulling production images..."
-  scripts/prepull-images.sh production
+  scripts/prepull-images.sh production "$CRAFTALISM_PROD_VARIANT"
 fi
 
 echo "[prod] Starting production stack..."
-docker_compose up -d "$@"
+docker_compose "${PROD_COMPOSE_ARGS[@]}" up -d "$@"

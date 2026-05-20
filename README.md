@@ -104,6 +104,7 @@ Optional behavior flags:
 - `CLEAN_PLUGIN_BUILD=1 ./local` to force clean plugin build via bootstrap.
 - `LOCAL_BUILD_RETRIES=5 ./local` to retry transient local docker builds (default: 3 attempts).
 - `CRAFTALISM_RUNTIME_PROFILE=standard ./prod` to raise deployment-owned memory defaults above the small-host preset.
+- `CRAFTALISM_PROD_VARIANT=friend-paper ./prod` to run production with `docker-compose.friend-paper.yml`.
 - `scripts/resolve-image-digests.sh --env-file .env --mode test --write` to resolve only digests needed by `./test`.
 
 ---
@@ -226,7 +227,7 @@ Notes:
 
 ## 3) Production flow
 
-Production uses the base compose file directly. The public edge, TLS, and
+Production uses the base compose file by default. The public edge, TLS, and
 dashboard basic auth are expected to be owned by `craftalism-infra` on the
 host, while this repo publishes only the localhost upstream ports the host
 proxy forwards to.
@@ -235,6 +236,10 @@ proxy forwards to.
 scripts/prepull-images.sh production
 docker compose up -d
 ```
+
+Use `./prod` for the checked production path. It validates required production
+configuration, refreshes image digests unless disabled, pre-pulls images, and
+starts the selected production compose set.
 
 Production requirements:
 - Publicly expose only `80`, `443`, and `25565` at the EC2/security-group layer. Keep `9000`, `3000`, `8080`, and `25575` private.
@@ -268,7 +273,13 @@ For a small Paper server with two extra plugin jars:
 cp env.friend-paper.example .env.friend-paper
 # TreeChopper is enabled by default through FRIEND_PAPER_MODRINTH_PROJECTS.
 # Optionally add more trusted Paper/Bukkit/Spigot plugin jar URLs with MINECRAFT_EXTRA_PLUGIN_URLS.
-docker compose --env-file .env --env-file .env.friend-paper -f docker-compose.yml -f docker-compose.friend-paper.yml up -d
+CRAFTALISM_PROD_VARIANT=friend-paper ./prod
+```
+
+`./prod down` must be run with the same variant when stopping this compose set:
+
+```bash
+CRAFTALISM_PROD_VARIANT=friend-paper ./prod down
 ```
 
 This override installs the TreeChopper Paper plugin from Modrinth. It does not make Paper load Forge, Fabric, or NeoForge mods. If those two requested jars are real mods, use a separate mod-loader server type instead and expect the Craftalism Paper plugins to be out of scope for that server.
