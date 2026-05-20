@@ -241,6 +241,7 @@ Production requirements:
 - Set immutable release tags in `.env` (`AUTH_SERVER_VERSION`, `API_VERSION`, `DASHBOARD_VERSION`, `ECONOMY_VERSION`, `MARKET_VERSION`).
 - Set pinned image digests in `.env` (`AUTH_SERVER_DIGEST`, `API_DIGEST`, `DASHBOARD_DIGEST`, `POSTGRES_DIGEST`, `MINECRAFT_IMAGE_DIGEST`).
 - Set the Paper market plugin runtime config in `.env` (`MARKET_API_BASE_URL`, `MARKET_API_SNAPSHOT_PATH`, and related `MARKET_API_*` settings). The deployment now seeds `/data/plugins/CraftalismMarket/config.yml` from these values before Paper starts.
+- Optional extra server jars must be Paper/Bukkit/Spigot plugins. Add them with `MINECRAFT_EXTRA_PLUGIN_URLS`; Forge, Fabric, and NeoForge mods do not run on Paper.
 - Do **not** use `latest` or unpinned image references.
 - Economy and market plugins are downloaded from GitHub Releases using `ECONOMY_VERSION` and `MARKET_VERSION`.
 - Image references are configured as `repo:tag@sha256:...` so deployments are immutable by default.
@@ -258,6 +259,31 @@ For `t3.small` testing, this repo now supports profile-driven runtime ceilings t
 - The Java defaults now use container-aware heap percentages, reduced thread stacks, and fail-fast OOM behavior so the container budget remains enforceable.
 
 These defaults are aimed at survival on a hobby-scale `t3.small`. If the host still thrashes or player load is non-trivial, move to `t3.medium`.
+
+### Friend Paper server override
+
+For a small Paper server with two extra plugin jars:
+
+```bash
+cp env.friend-paper.example .env.friend-paper
+# TreeChopper is enabled by default through FRIEND_PAPER_MODRINTH_PROJECTS.
+# Optionally add more trusted Paper/Bukkit/Spigot plugin jar URLs with MINECRAFT_EXTRA_PLUGIN_URLS.
+docker compose --env-file .env --env-file .env.friend-paper -f docker-compose.yml -f docker-compose.friend-paper.yml up -d
+```
+
+This override installs the TreeChopper Paper plugin from Modrinth. It does not make Paper load Forge, Fabric, or NeoForge mods. If those two requested jars are real mods, use a separate mod-loader server type instead and expect the Craftalism Paper plugins to be out of scope for that server.
+
+### Friend modded server override
+
+For real Forge, Fabric, NeoForge, or Quilt mods, run a separate modded server:
+
+```bash
+cp env.friend-modded.example .env.friend-modded
+# edit FRIEND_MODDED_TYPE, FRIEND_MODDED_MINECRAFT_VERSION, and FRIEND_MODDED_MOD_URLS
+docker compose --env-file .env.friend-modded -f docker-compose.friend-modded.yml up -d
+```
+
+This starts only `minecraft-modded` with its own `minecraft_modded_data` volume. It does not load the Craftalism Paper plugins or depend on the Craftalism API stack.
 
 ---
 
