@@ -293,6 +293,8 @@ services:
               description:
                 - "&7High-value item shown in informational trade mode."
         EOF
+        chown minecraft:minecraft /data/plugins
+        chmod 775 /data/plugins
         chown -R minecraft:minecraft /data/plugins/CraftalismMarket
         chmod 755 /data/plugins/CraftalismMarket
         chmod 644 /data/plugins/CraftalismMarket/config.yml
