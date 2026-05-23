@@ -18,10 +18,16 @@ RUNTIME_PROFILE_ENV_KEYS=(
   API_JAVA_TOOL_OPTIONS
   API_MEM_LIMIT
   API_MEM_RESERVATION
+  API_JVM_THREAD_BUDGET
   API_SPRING_JPA_SHOW_SQL
   API_SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL
+  API_SPRINGDOC_API_DOCS_ENABLED
+  API_SPRINGDOC_SWAGGER_UI_ENABLED
   API_SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE
   API_SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE
+  MARKET_QUOTE_RATE_LIMIT_MAX_REQUESTS
+  MARKET_EXECUTE_RATE_LIMIT_MAX_REQUESTS
+  MARKET_RATE_LIMIT_WINDOW_SECONDS
   POSTGRES_SHARED_BUFFERS
   POSTGRES_WORK_MEM
   POSTGRES_MAINTENANCE_WORK_MEM
@@ -88,15 +94,21 @@ apply_runtime_profile() {
   case "$profile" in
     small-host)
       set_default_var AUTH_SERVER_JAVA_TOOL_OPTIONS "-XX:InitialRAMPercentage=25 -XX:MaxRAMPercentage=45 -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m -XX:+ExitOnOutOfMemoryError"
-      set_default_var AUTH_SERVER_MEM_LIMIT "256m"
-      set_default_var AUTH_SERVER_MEM_RESERVATION "192m"
+      set_default_var AUTH_SERVER_MEM_LIMIT "384m"
+      set_default_var AUTH_SERVER_MEM_RESERVATION "256m"
       set_default_var AUTH_SERVER_SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE "4"
       set_default_var AUTH_SERVER_SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE "1"
-      set_default_var API_JAVA_TOOL_OPTIONS "-XX:InitialRAMPercentage=25 -XX:MaxRAMPercentage=45 -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError"
-      set_default_var API_MEM_LIMIT "512m"
+      set_default_var API_JAVA_TOOL_OPTIONS "-Xms48m -Xmx144m -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=48m -XX:+ExitOnOutOfMemoryError"
+      set_default_var API_MEM_LIMIT "576m"
       set_default_var API_MEM_RESERVATION "384m"
+      set_default_var API_JVM_THREAD_BUDGET "80"
+      set_default_var API_SPRINGDOC_API_DOCS_ENABLED "false"
+      set_default_var API_SPRINGDOC_SWAGGER_UI_ENABLED "false"
       set_default_var API_SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE "5"
       set_default_var API_SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE "1"
+      set_default_var MARKET_QUOTE_RATE_LIMIT_MAX_REQUESTS "120"
+      set_default_var MARKET_EXECUTE_RATE_LIMIT_MAX_REQUESTS "30"
+      set_default_var MARKET_RATE_LIMIT_WINDOW_SECONDS "60"
       set_default_var POSTGRES_SHARED_BUFFERS "128MB"
       set_default_var POSTGRES_WORK_MEM "4MB"
       set_default_var POSTGRES_MAINTENANCE_WORK_MEM "64MB"
@@ -115,15 +127,21 @@ apply_runtime_profile() {
       ;;
     standard)
       set_default_var AUTH_SERVER_JAVA_TOOL_OPTIONS "-XX:InitialRAMPercentage=25 -XX:MaxRAMPercentage=50 -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError"
-      set_default_var AUTH_SERVER_MEM_LIMIT "384m"
-      set_default_var AUTH_SERVER_MEM_RESERVATION "256m"
+      set_default_var AUTH_SERVER_MEM_LIMIT "512m"
+      set_default_var AUTH_SERVER_MEM_RESERVATION "384m"
       set_default_var AUTH_SERVER_SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE "6"
       set_default_var AUTH_SERVER_SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE "1"
-      set_default_var API_JAVA_TOOL_OPTIONS "-XX:InitialRAMPercentage=25 -XX:MaxRAMPercentage=45 -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=160m -XX:+ExitOnOutOfMemoryError"
-      set_default_var API_MEM_LIMIT "768m"
-      set_default_var API_MEM_RESERVATION "512m"
+      set_default_var API_JAVA_TOOL_OPTIONS "-Xms192m -Xmx448m -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=224m -XX:ReservedCodeCacheSize=128m -XX:+ExitOnOutOfMemoryError"
+      set_default_var API_MEM_LIMIT "1280m"
+      set_default_var API_MEM_RESERVATION "768m"
+      set_default_var API_JVM_THREAD_BUDGET "96"
+      set_default_var API_SPRINGDOC_API_DOCS_ENABLED "false"
+      set_default_var API_SPRINGDOC_SWAGGER_UI_ENABLED "false"
       set_default_var API_SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE "8"
       set_default_var API_SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE "1"
+      set_default_var MARKET_QUOTE_RATE_LIMIT_MAX_REQUESTS "180"
+      set_default_var MARKET_EXECUTE_RATE_LIMIT_MAX_REQUESTS "60"
+      set_default_var MARKET_RATE_LIMIT_WINDOW_SECONDS "60"
       set_default_var POSTGRES_SHARED_BUFFERS "192MB"
       set_default_var POSTGRES_WORK_MEM "8MB"
       set_default_var POSTGRES_MAINTENANCE_WORK_MEM "96MB"
@@ -241,7 +259,8 @@ validate_java_memory_budget() {
   local service_name="$1"
   local options="$2"
   local limit_raw="$3"
-  local limit_mb heap_mb metaspace_mb budget_mb xms_mb native_headroom_mb
+  local thread_budget="${4:-64}"
+  local limit_mb heap_mb metaspace_mb code_cache_mb stack_mb stack_total_mb budget_mb xms_mb native_headroom_mb
 
   limit_mb="$(parse_memory_mb "$limit_raw")" || {
     echo "[prod] ${service_name} memory limit is invalid: ${limit_raw}" >&2
@@ -261,6 +280,30 @@ validate_java_memory_budget() {
     }
   fi
 
+  code_cache_mb=0
+  if code_cache_raw="$(extract_java_option_value "$options" "-XX:ReservedCodeCacheSize=")"; then
+    code_cache_mb="$(parse_memory_mb "$code_cache_raw")" || {
+      echo "[prod] ${service_name} ReservedCodeCacheSize is invalid: ${code_cache_raw}" >&2
+      return 1
+    }
+  fi
+
+  stack_mb=1
+  if stack_raw="$(extract_java_option_value "$options" "-Xss")"; then
+    stack_mb="$(parse_memory_mb "$stack_raw")" || {
+      echo "[prod] ${service_name} Xss value is invalid: ${stack_raw}" >&2
+      return 1
+    }
+    if (( stack_mb < 1 )); then
+      stack_mb=1
+    fi
+  fi
+
+  if [[ ! "$thread_budget" =~ ^[0-9]+$ || "$thread_budget" -le 0 ]]; then
+    echo "[prod] ${service_name} thread budget is invalid: ${thread_budget}" >&2
+    return 1
+  fi
+
   if xms_raw="$(extract_java_option_value "$options" "-Xms")"; then
     xms_mb="$(parse_memory_mb "$xms_raw")" || {
       echo "[prod] ${service_name} Xms value is invalid: ${xms_raw}" >&2
@@ -277,10 +320,11 @@ validate_java_memory_budget() {
     native_headroom_mb=128
   fi
 
-  budget_mb=$((heap_mb + metaspace_mb + native_headroom_mb))
+  stack_total_mb=$((stack_mb * thread_budget))
+  budget_mb=$((heap_mb + metaspace_mb + code_cache_mb + stack_total_mb + native_headroom_mb))
   if (( budget_mb >= limit_mb )); then
-    echo "[prod] ${service_name} JVM budget (${budget_mb}MiB) leaves less than ${native_headroom_mb}MiB native headroom inside ${limit_raw}." >&2
-    echo "[prod] Lower heap/metaspace settings or raise the container memory limit for ${service_name}." >&2
+    echo "[prod] ${service_name} JVM budget (${budget_mb}MiB: heap=${heap_mb}, metaspace=${metaspace_mb}, code_cache=${code_cache_mb}, stacks=${stack_total_mb}, native_headroom=${native_headroom_mb}) does not fit inside ${limit_raw}." >&2
+    echo "[prod] Lower heap/metaspace/code-cache/thread settings or raise the container memory limit for ${service_name}." >&2
     return 1
   fi
 }

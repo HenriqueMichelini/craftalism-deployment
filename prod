@@ -4,9 +4,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR"
 
-ACTIONS_HELP="Usage: ./prod [up|down]"
+ACTIONS_HELP="Usage: ./prod [up|down|config|ps]"
 ACTION="${1:-up}"
-if [[ "$ACTION" != "up" && "$ACTION" != "down" ]]; then
+if [[ "$ACTION" != "up" && "$ACTION" != "down" && "$ACTION" != "config" && "$ACTION" != "ps" ]]; then
   echo "$ACTIONS_HELP" >&2
   exit 1
 fi
@@ -194,8 +194,34 @@ validate_prod_runtime_memory() {
   validate_reservation_not_above_limit "minecraft" "${MINECRAFT_MEM_LIMIT}" "${MINECRAFT_MEM_RESERVATION}"
 
   validate_java_memory_budget "auth-server" "${AUTH_SERVER_JAVA_TOOL_OPTIONS}" "${AUTH_SERVER_MEM_LIMIT}"
-  validate_java_memory_budget "api" "${API_JAVA_TOOL_OPTIONS}" "${API_MEM_LIMIT}"
+  validate_java_memory_budget "api" "${API_JAVA_TOOL_OPTIONS}" "${API_MEM_LIMIT}" "${API_JVM_THREAD_BUDGET}"
   validate_minecraft_memory_budget "${MINECRAFT_INIT_MEMORY}" "${MINECRAFT_MEMORY}" "${MINECRAFT_MEM_LIMIT}"
+}
+
+validate_prod_market_rate_limits() {
+  validate_non_negative_integer MARKET_QUOTE_RATE_LIMIT_MAX_REQUESTS
+  validate_non_negative_integer MARKET_EXECUTE_RATE_LIMIT_MAX_REQUESTS
+  validate_positive_integer MARKET_RATE_LIMIT_WINDOW_SECONDS
+}
+
+validate_non_negative_integer() {
+  local key="$1"
+  local value="${!key:-}"
+
+  if [[ ! "$value" =~ ^[0-9]+$ ]]; then
+    echo "[prod] ${key} must be a non-negative integer." >&2
+    return 1
+  fi
+}
+
+validate_positive_integer() {
+  local key="$1"
+  local value="${!key:-}"
+
+  if [[ ! "$value" =~ ^[0-9]+$ || "$value" -le 0 ]]; then
+    echo "[prod] ${key} must be a positive integer." >&2
+    return 1
+  fi
 }
 
 if [[ ! -f .env ]]; then
@@ -217,8 +243,21 @@ if [[ "$ACTION" == "down" ]]; then
   exit 0
 fi
 
+if [[ "$ACTION" == "config" ]]; then
+  validate_prod_runtime_memory
+  validate_prod_market_rate_limits
+  docker_compose "${PROD_COMPOSE_ARGS[@]}" config "$@"
+  exit 0
+fi
+
+if [[ "$ACTION" == "ps" ]]; then
+  docker_compose "${PROD_COMPOSE_ARGS[@]}" ps "$@"
+  exit 0
+fi
+
 require_prod_vars
 validate_prod_runtime_memory
+validate_prod_market_rate_limits
 
 digests_refreshed=0
 if [[ "${SKIP_DIGEST_REFRESH:-0}" != "1" ]]; then

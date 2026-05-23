@@ -52,7 +52,7 @@ for c in $(docker ps --format '{{.Names}}'); do
   docker exec "$c" sh -c 'env | sort' 2>/dev/null | redact_env_stream \
     > "$OUT_DIR/${SAFE_NAME}.env.txt" 2>/dev/null || true
 
-  docker exec "$c" sh -c 'java -XX:+PrintFlagsFinal -version 2>/dev/null | grep -E "UseContainerSupport|MaxRAM|InitialRAM|ActiveProcessorCount|MaxHeapSize|InitialHeapSize|MaxMetaspaceSize|ThreadStackSize"' \
+  docker exec "$c" sh -c 'java -XX:+PrintFlagsFinal -version 2>/dev/null | grep -E "UseContainerSupport|MaxRAM|InitialRAM|ActiveProcessorCount|MaxHeapSize|InitialHeapSize|MaxMetaspaceSize|ReservedCodeCacheSize|ThreadStackSize"' \
     > "$OUT_DIR/${SAFE_NAME}.jvm-flags.txt" 2>/dev/null || true
 done
 
