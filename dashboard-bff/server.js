@@ -42,6 +42,21 @@ const approvedWriteRoutes = [
     pattern: /^\/api\/dashboard\/balances\/([^/]+)\/?$/,
     target: (match) => `/api/balances/${match[1]}`,
   },
+  {
+    method: "POST",
+    pattern: /^\/api\/dashboard\/market\/items\/?$/,
+    target: "/api/dashboard/market/items",
+  },
+  {
+    method: "PATCH",
+    pattern: /^\/api\/dashboard\/market\/items\/([^/]+)\/?$/,
+    target: (match) => `/api/dashboard/market/items/${match[1]}`,
+  },
+  {
+    method: "DELETE",
+    pattern: /^\/api\/dashboard\/market\/items\/([^/]+)\/?$/,
+    target: (match) => `/api/dashboard/market/items/${match[1]}`,
+  },
 ];
 
 let cachedToken = null;

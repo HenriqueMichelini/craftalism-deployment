@@ -45,9 +45,25 @@ test("allows only approved dashboard balance write routes", () => {
   );
 });
 
+test("allows only approved dashboard market item write routes", () => {
+  assert.equal(
+    matchApprovedWriteRoute("POST", "/api/dashboard/market/items"),
+    "/api/dashboard/market/items",
+  );
+  assert.equal(
+    matchApprovedWriteRoute("PATCH", "/api/dashboard/market/items/dirt"),
+    "/api/dashboard/market/items/dirt",
+  );
+  assert.equal(
+    matchApprovedWriteRoute("DELETE", "/api/dashboard/market/items/dirt"),
+    "/api/dashboard/market/items/dirt",
+  );
+});
+
 test("rejects direct API writes and unapproved dashboard paths", () => {
   assert.equal(matchApprovedWriteRoute("POST", "/api/players"), null);
   assert.equal(matchApprovedWriteRoute("PATCH", "/api/balances/example"), null);
   assert.equal(matchApprovedWriteRoute("POST", "/api/dashboard/transactions"), null);
+  assert.equal(matchApprovedWriteRoute("PUT", "/api/dashboard/market/items/dirt"), null);
   assert.equal(matchApprovedWriteRoute("GET", "/api/dashboard/players"), null);
 });
