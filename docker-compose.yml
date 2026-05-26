@@ -21,8 +21,8 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
-    mem_limit: ${EDGE_MEM_LIMIT:-128m}
-    mem_reservation: ${EDGE_MEM_RESERVATION:-64m}
+    mem_limit: ${EDGE_MEM_LIMIT:-96m}
+    mem_reservation: ${EDGE_MEM_RESERVATION:-32m}
     networks:
       - craftalism
     restart: unless-stopped
@@ -35,11 +35,11 @@ services:
     command:
       - postgres
       - -c
-      - shared_buffers=${POSTGRES_SHARED_BUFFERS:-128MB}
+      - shared_buffers=${POSTGRES_SHARED_BUFFERS:-64MB}
       - -c
-      - work_mem=${POSTGRES_WORK_MEM:-4MB}
+      - work_mem=${POSTGRES_WORK_MEM:-2MB}
       - -c
-      - maintenance_work_mem=${POSTGRES_MAINTENANCE_WORK_MEM:-64MB}
+      - maintenance_work_mem=${POSTGRES_MAINTENANCE_WORK_MEM:-32MB}
     environment:
       PGDATA: /var/lib/postgresql/data/pgdata
       POSTGRES_DB: ${DB_NAME:-craftalism}
@@ -47,8 +47,8 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    mem_limit: ${POSTGRES_MEM_LIMIT:-256m}
-    mem_reservation: ${POSTGRES_MEM_RESERVATION:-128m}
+    mem_limit: ${POSTGRES_MEM_LIMIT:-192m}
+    mem_reservation: ${POSTGRES_MEM_RESERVATION:-96m}
     networks:
       - craftalism
     restart: unless-stopped
@@ -78,11 +78,11 @@ services:
     image: ghcr.io/henriquemichelini/craftalism-authorization-server:${AUTH_SERVER_VERSION:?Set AUTH_SERVER_VERSION to an immutable release tag}@${AUTH_SERVER_DIGEST:?Set AUTH_SERVER_DIGEST to the release image sha256 digest}
     container_name: craftalism-auth-server
     environment:
-      JAVA_TOOL_OPTIONS: ${AUTH_SERVER_JAVA_TOOL_OPTIONS:--Xms96m -Xmx192m -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m}
+      JAVA_TOOL_OPTIONS: ${AUTH_SERVER_JAVA_TOOL_OPTIONS:--Xms48m -Xmx112m -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=72m -XX:ReservedCodeCacheSize=32m -XX:+ExitOnOutOfMemoryError}
       DB_URL: jdbc:postgresql://postgres:5432/authserver
       DB_USER: ${DB_USER:-craftalism}
       DB_PASSWORD: ${DB_PASSWORD}
-      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${AUTH_SERVER_SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:-4}
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${AUTH_SERVER_SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:-2}
       SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: ${AUTH_SERVER_SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE:-1}
       RSA_PRIVATE_KEY: ${RSA_PRIVATE_KEY}
       RSA_PUBLIC_KEY: ${RSA_PUBLIC_KEY}
@@ -97,8 +97,8 @@ services:
         condition: service_completed_successfully
     ports:
       - "${AUTH_SERVER_HOST:-127.0.0.1}:${AUTH_SERVER_PORT:-9000}:9000"
-    mem_limit: ${AUTH_SERVER_MEM_LIMIT:-384m}
-    mem_reservation: ${AUTH_SERVER_MEM_RESERVATION:-256m}
+    mem_limit: ${AUTH_SERVER_MEM_LIMIT:-224m}
+    mem_reservation: ${AUTH_SERVER_MEM_RESERVATION:-128m}
     networks:
       - craftalism
     restart: unless-stopped
@@ -126,7 +126,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-craftalism}
       SPRING_DATASOURCE_USERNAME: ${DB_USER:-craftalism}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
-      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${API_SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:-5}
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${API_SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:-3}
       SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: ${API_SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE:-1}
       MARKET_QUOTE_RATE_LIMIT_MAX_REQUESTS: ${MARKET_QUOTE_RATE_LIMIT_MAX_REQUESTS:-120}
       MARKET_EXECUTE_RATE_LIMIT_MAX_REQUESTS: ${MARKET_EXECUTE_RATE_LIMIT_MAX_REQUESTS:-30}
@@ -140,7 +140,7 @@ services:
     ports:
       - "${API_HOST:-127.0.0.1}:${API_PORT:-3000}:8080"
     mem_limit: ${API_MEM_LIMIT:-576m}
-    mem_reservation: ${API_MEM_RESERVATION:-384m}
+    mem_reservation: ${API_MEM_RESERVATION:-192m}
     networks:
       - craftalism
     restart: unless-stopped
@@ -171,8 +171,8 @@ services:
         condition: service_healthy
     ports:
       - "${DASHBOARD_HOST:-127.0.0.1}:${DASHBOARD_PORT:-8080}:80"
-    mem_limit: ${DASHBOARD_MEM_LIMIT:-96m}
-    mem_reservation: ${DASHBOARD_MEM_RESERVATION:-32m}
+    mem_limit: ${DASHBOARD_MEM_LIMIT:-64m}
+    mem_reservation: ${DASHBOARD_MEM_RESERVATION:-16m}
     networks:
       - craftalism
     restart: unless-stopped
@@ -206,8 +206,8 @@ services:
         condition: service_healthy
       auth-server:
         condition: service_healthy
-    mem_limit: ${DASHBOARD_BFF_MEM_LIMIT:-128m}
-    mem_reservation: ${DASHBOARD_BFF_MEM_RESERVATION:-64m}
+    mem_limit: ${DASHBOARD_BFF_MEM_LIMIT:-96m}
+    mem_reservation: ${DASHBOARD_BFF_MEM_RESERVATION:-32m}
     networks:
       - craftalism
     restart: unless-stopped
@@ -313,8 +313,10 @@ services:
       EULA: "TRUE"
       TYPE: ${MINECRAFT_TYPE:-PAPER}
       VERSION: ${MINECRAFT_VERSION:-1.21.4}
-      INIT_MEMORY: ${MINECRAFT_INIT_MEMORY:-512M}
-      MEMORY: ${MINECRAFT_MEMORY:-512M}
+      INIT_MEMORY: ${MINECRAFT_INIT_MEMORY:-768M}
+      MEMORY: ${MINECRAFT_MEMORY:-768M}
+      USE_AIKAR_FLAGS: ${USE_AIKAR_FLAGS:-false}
+      JVM_XX_OPTS: ${MINECRAFT_JVM_XX_OPTS:--XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+DisableExplicitGC}
       MAX_PLAYERS: ${MINECRAFT_MAX_PLAYERS:-20}
       DIFFICULTY: ${MINECRAFT_DIFFICULTY:-normal}
       MODE: ${MINECRAFT_MODE:-survival}
@@ -338,8 +340,8 @@ services:
       - minecraft_data:/data
     ports:
       - "${MINECRAFT_PORT:-25565}:25565"
-    mem_limit: ${MINECRAFT_MEM_LIMIT:-768m}
-    mem_reservation: ${MINECRAFT_MEM_RESERVATION:-512m}
+    mem_limit: ${MINECRAFT_MEM_LIMIT:-1280m}
+    mem_reservation: ${MINECRAFT_MEM_RESERVATION:-768m}
     networks:
       - craftalism
     depends_on:
