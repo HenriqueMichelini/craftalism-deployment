@@ -190,6 +190,7 @@ validate_prod_runtime_memory() {
   validate_reservation_not_above_limit "api" "${API_MEM_LIMIT}" "${API_MEM_RESERVATION}"
   validate_reservation_not_above_limit "postgres" "${POSTGRES_MEM_LIMIT}" "${POSTGRES_MEM_RESERVATION}"
   validate_reservation_not_above_limit "dashboard" "${DASHBOARD_MEM_LIMIT}" "${DASHBOARD_MEM_RESERVATION}"
+  validate_reservation_not_above_limit "dashboard-bff" "${DASHBOARD_BFF_MEM_LIMIT}" "${DASHBOARD_BFF_MEM_RESERVATION}"
   validate_reservation_not_above_limit "edge" "${EDGE_MEM_LIMIT}" "${EDGE_MEM_RESERVATION}"
   validate_reservation_not_above_limit "minecraft" "${MINECRAFT_MEM_LIMIT}" "${MINECRAFT_MEM_RESERVATION}"
 

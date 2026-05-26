@@ -35,6 +35,8 @@ RUNTIME_PROFILE_ENV_KEYS=(
   POSTGRES_MEM_RESERVATION
   DASHBOARD_MEM_LIMIT
   DASHBOARD_MEM_RESERVATION
+  DASHBOARD_BFF_MEM_LIMIT
+  DASHBOARD_BFF_MEM_RESERVATION
   EDGE_MEM_LIMIT
   EDGE_MEM_RESERVATION
   MINECRAFT_INIT_MEMORY
@@ -43,6 +45,8 @@ RUNTIME_PROFILE_ENV_KEYS=(
   MINECRAFT_SIMULATION_DISTANCE
   MINECRAFT_MEM_LIMIT
   MINECRAFT_MEM_RESERVATION
+  USE_AIKAR_FLAGS
+  MINECRAFT_JVM_XX_OPTS
 )
 
 read_runtime_env_var() {
@@ -93,37 +97,41 @@ apply_runtime_profile() {
 
   case "$profile" in
     small-host)
-      set_default_var AUTH_SERVER_JAVA_TOOL_OPTIONS "-XX:InitialRAMPercentage=25 -XX:MaxRAMPercentage=45 -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m -XX:+ExitOnOutOfMemoryError"
-      set_default_var AUTH_SERVER_MEM_LIMIT "384m"
-      set_default_var AUTH_SERVER_MEM_RESERVATION "256m"
-      set_default_var AUTH_SERVER_SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE "4"
+      set_default_var AUTH_SERVER_JAVA_TOOL_OPTIONS "-Xms48m -Xmx112m -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=72m -XX:ReservedCodeCacheSize=32m -XX:+ExitOnOutOfMemoryError"
+      set_default_var AUTH_SERVER_MEM_LIMIT "320m"
+      set_default_var AUTH_SERVER_MEM_RESERVATION "128m"
+      set_default_var AUTH_SERVER_SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE "2"
       set_default_var AUTH_SERVER_SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE "1"
       set_default_var API_JAVA_TOOL_OPTIONS "-Xms48m -Xmx144m -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=48m -XX:+ExitOnOutOfMemoryError"
       set_default_var API_MEM_LIMIT "576m"
-      set_default_var API_MEM_RESERVATION "384m"
+      set_default_var API_MEM_RESERVATION "192m"
       set_default_var API_JVM_THREAD_BUDGET "80"
       set_default_var API_SPRINGDOC_API_DOCS_ENABLED "false"
       set_default_var API_SPRINGDOC_SWAGGER_UI_ENABLED "false"
-      set_default_var API_SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE "5"
+      set_default_var API_SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE "3"
       set_default_var API_SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE "1"
       set_default_var MARKET_QUOTE_RATE_LIMIT_MAX_REQUESTS "120"
       set_default_var MARKET_EXECUTE_RATE_LIMIT_MAX_REQUESTS "30"
       set_default_var MARKET_RATE_LIMIT_WINDOW_SECONDS "60"
-      set_default_var POSTGRES_SHARED_BUFFERS "128MB"
-      set_default_var POSTGRES_WORK_MEM "4MB"
-      set_default_var POSTGRES_MAINTENANCE_WORK_MEM "64MB"
-      set_default_var POSTGRES_MEM_LIMIT "256m"
-      set_default_var POSTGRES_MEM_RESERVATION "128m"
-      set_default_var DASHBOARD_MEM_LIMIT "96m"
-      set_default_var DASHBOARD_MEM_RESERVATION "32m"
-      set_default_var EDGE_MEM_LIMIT "128m"
-      set_default_var EDGE_MEM_RESERVATION "64m"
-      set_default_var MINECRAFT_INIT_MEMORY "512M"
-      set_default_var MINECRAFT_MEMORY "512M"
+      set_default_var POSTGRES_SHARED_BUFFERS "64MB"
+      set_default_var POSTGRES_WORK_MEM "2MB"
+      set_default_var POSTGRES_MAINTENANCE_WORK_MEM "32MB"
+      set_default_var POSTGRES_MEM_LIMIT "192m"
+      set_default_var POSTGRES_MEM_RESERVATION "96m"
+      set_default_var DASHBOARD_MEM_LIMIT "64m"
+      set_default_var DASHBOARD_MEM_RESERVATION "16m"
+      set_default_var DASHBOARD_BFF_MEM_LIMIT "96m"
+      set_default_var DASHBOARD_BFF_MEM_RESERVATION "32m"
+      set_default_var EDGE_MEM_LIMIT "96m"
+      set_default_var EDGE_MEM_RESERVATION "32m"
+      set_default_var MINECRAFT_INIT_MEMORY "768M"
+      set_default_var MINECRAFT_MEMORY "768M"
       set_default_var MINECRAFT_VIEW_DISTANCE "6"
       set_default_var MINECRAFT_SIMULATION_DISTANCE "4"
-      set_default_var MINECRAFT_MEM_LIMIT "768m"
-      set_default_var MINECRAFT_MEM_RESERVATION "512m"
+      set_default_var MINECRAFT_MEM_LIMIT "1280m"
+      set_default_var MINECRAFT_MEM_RESERVATION "768m"
+      set_default_var USE_AIKAR_FLAGS "false"
+      set_default_var MINECRAFT_JVM_XX_OPTS "-XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+DisableExplicitGC"
       ;;
     standard)
       set_default_var AUTH_SERVER_JAVA_TOOL_OPTIONS "-XX:InitialRAMPercentage=25 -XX:MaxRAMPercentage=50 -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError"

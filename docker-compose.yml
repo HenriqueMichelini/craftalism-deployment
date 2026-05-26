@@ -97,7 +97,7 @@ services:
         condition: service_completed_successfully
     ports:
       - "${AUTH_SERVER_HOST:-127.0.0.1}:${AUTH_SERVER_PORT:-9000}:9000"
-    mem_limit: ${AUTH_SERVER_MEM_LIMIT:-224m}
+    mem_limit: ${AUTH_SERVER_MEM_LIMIT:-320m}
     mem_reservation: ${AUTH_SERVER_MEM_RESERVATION:-128m}
     networks:
       - craftalism
