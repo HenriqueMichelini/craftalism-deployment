@@ -57,9 +57,33 @@ const approvedWriteRoutes = [
     pattern: /^\/api\/dashboard\/market\/items\/([^/]+)\/?$/,
     target: (match) => `/api/dashboard/market/items/${match[1]}`,
   },
+  {
+    method: "POST",
+    pattern: /^\/api\/dashboard\/market\/categories\/?$/,
+    target: "/api/dashboard/market/categories",
+  },
+  {
+    method: "PATCH",
+    pattern: /^\/api\/dashboard\/market\/categories\/([^/]+)\/?$/,
+    target: (match) => `/api/dashboard/market/categories/${match[1]}`,
+  },
+  {
+    method: "DELETE",
+    pattern: /^\/api\/dashboard\/market\/categories\/([^/]+)\/?$/,
+    target: (match) => `/api/dashboard/market/categories/${match[1]}`,
+  },
 ];
 
-let cachedToken = null;
+const approvedAuthenticatedReadRoutes = [
+  {
+    method: "GET",
+    pattern: /^\/api\/dashboard\/market\/events\/?$/,
+    target: "/api/dashboard/market/events",
+    scope: "market:admin",
+  },
+];
+
+const cachedTokensByScope = new Map();
 
 if (require.main === module) {
   const server = http.createServer(async (request, response) => {
@@ -90,10 +114,28 @@ async function handleRequest(request, response) {
   );
 
   if (approvedWriteRoute) {
-    const token = await getAccessToken();
+    const token = await getAccessToken("api:write");
     await proxyRequest(request, response, approvedWriteRoute, {
       authorization: `Bearer ${token}`,
     });
+    return;
+  }
+
+  const approvedAuthenticatedReadRoute = matchApprovedAuthenticatedReadRoute(
+    request.method,
+    requestUrl.pathname,
+  );
+
+  if (approvedAuthenticatedReadRoute) {
+    const token = await getAccessToken(approvedAuthenticatedReadRoute.scope);
+    await proxyRequest(
+      request,
+      response,
+      `${approvedAuthenticatedReadRoute.targetPath}${requestUrl.search}`,
+      {
+        authorization: `Bearer ${token}`,
+      },
+    );
     return;
   }
 
@@ -131,6 +173,30 @@ function matchApprovedWriteRoute(method, pathname) {
   return null;
 }
 
+function matchApprovedAuthenticatedReadRoute(method, pathname) {
+  for (const route of approvedAuthenticatedReadRoutes) {
+    if (route.method !== method) {
+      continue;
+    }
+
+    const match = pathname.match(route.pattern);
+
+    if (!match) {
+      continue;
+    }
+
+    const targetPath =
+      typeof route.target === "function" ? route.target(match) : route.target;
+
+    return {
+      targetPath,
+      scope: route.scope,
+    };
+  }
+
+  return null;
+}
+
 async function proxyRequest(request, response, targetPath, headers = {}) {
   const body = await readRequestBody(request);
   const upstreamResponse = await fetch(`${apiUpstreamUrl}${targetPath}`, {
@@ -150,7 +216,9 @@ async function proxyRequest(request, response, targetPath, headers = {}) {
   response.end(responseBody);
 }
 
-async function getAccessToken() {
+async function getAccessToken(scope) {
+  const cachedToken = cachedTokensByScope.get(scope);
+
   if (cachedToken && cachedToken.expiresAt > Date.now() + 30_000) {
     return cachedToken.accessToken;
   }
@@ -168,7 +236,7 @@ async function getAccessToken() {
       grant_type: "client_credentials",
       client_id: clientId,
       client_secret: clientSecret,
-      scope: "api:write",
+      scope,
     }),
   });
 
@@ -179,12 +247,12 @@ async function getAccessToken() {
   const tokenPayload = await tokenResponse.json();
   const expiresInSeconds = Number(tokenPayload.expires_in || 300);
 
-  cachedToken = {
+  cachedTokensByScope.set(scope, {
     accessToken: tokenPayload.access_token,
     expiresAt: Date.now() + expiresInSeconds * 1000,
-  };
+  });
 
-  return cachedToken.accessToken;
+  return tokenPayload.access_token;
 }
 
 function buildForwardHeaders(request, extraHeaders) {
@@ -239,5 +307,6 @@ function sendText(response, status, message) {
 }
 
 module.exports = {
+  matchApprovedAuthenticatedReadRoute,
   matchApprovedWriteRoute,
 };

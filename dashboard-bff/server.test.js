@@ -1,7 +1,10 @@
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
 
-const { matchApprovedWriteRoute } = require("./server.js");
+const {
+  matchApprovedAuthenticatedReadRoute,
+  matchApprovedWriteRoute,
+} = require("./server.js");
 
 test("allows only approved dashboard player write routes", () => {
   assert.equal(
@@ -60,10 +63,56 @@ test("allows only approved dashboard market item write routes", () => {
   );
 });
 
+test("allows only approved dashboard market category write routes", () => {
+  assert.equal(
+    matchApprovedWriteRoute("POST", "/api/dashboard/market/categories"),
+    "/api/dashboard/market/categories",
+  );
+  assert.equal(
+    matchApprovedWriteRoute(
+      "PATCH",
+      "/api/dashboard/market/categories/farming",
+    ),
+    "/api/dashboard/market/categories/farming",
+  );
+  assert.equal(
+    matchApprovedWriteRoute(
+      "DELETE",
+      "/api/dashboard/market/categories/farming",
+    ),
+    "/api/dashboard/market/categories/farming",
+  );
+});
+
+test("allows market events admin read route with market admin scope", () => {
+  assert.deepEqual(
+    matchApprovedAuthenticatedReadRoute("GET", "/api/dashboard/market/events"),
+    {
+      targetPath: "/api/dashboard/market/events",
+      scope: "market:admin",
+    },
+  );
+  assert.deepEqual(
+    matchApprovedAuthenticatedReadRoute("GET", "/api/dashboard/market/events/"),
+    {
+      targetPath: "/api/dashboard/market/events",
+      scope: "market:admin",
+    },
+  );
+});
+
 test("rejects direct API writes and unapproved dashboard paths", () => {
   assert.equal(matchApprovedWriteRoute("POST", "/api/players"), null);
   assert.equal(matchApprovedWriteRoute("PATCH", "/api/balances/example"), null);
   assert.equal(matchApprovedWriteRoute("POST", "/api/dashboard/transactions"), null);
   assert.equal(matchApprovedWriteRoute("PUT", "/api/dashboard/market/items/dirt"), null);
   assert.equal(matchApprovedWriteRoute("GET", "/api/dashboard/players"), null);
+  assert.equal(
+    matchApprovedAuthenticatedReadRoute("GET", "/api/dashboard/players"),
+    null,
+  );
+  assert.equal(
+    matchApprovedAuthenticatedReadRoute("POST", "/api/dashboard/market/events"),
+    null,
+  );
 });
