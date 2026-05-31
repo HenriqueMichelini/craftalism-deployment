@@ -51,6 +51,12 @@ Expected localhost bindings:
 - API: `127.0.0.1:3000`
 - dashboard: `127.0.0.1:8080`
 
+For tailnet-only remote access during local development, keep these loopback
+bindings and use the [Tailscale Serve helper scripts](docs/tailscale-serve-local.md).
+They expose the dashboard through Tailscale Serve without enabling public
+Tailscale Funnel access. Direct API exposure is available as an explicit option
+when needed.
+
 ### Path assumptions (local development)
 
 This deployment repository expects sibling checkouts for local build contexts:
