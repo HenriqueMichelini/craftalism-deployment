@@ -83,6 +83,33 @@ const approvedAuthenticatedReadRoutes = [
   },
 ];
 
+const approvedAuthenticatedWriteRoutes = [
+  {
+    method: "POST",
+    pattern: /^\/api\/dashboard\/market\/events\/?$/,
+    target: "/api/dashboard/market/events",
+    scope: "market:admin",
+  },
+  {
+    method: "PATCH",
+    pattern: /^\/api\/dashboard\/market\/events\/([^/]+)\/?$/,
+    target: (match) => `/api/dashboard/market/events/${match[1]}`,
+    scope: "market:admin",
+  },
+  {
+    method: "POST",
+    pattern: /^\/api\/dashboard\/market\/events\/([^/]+)\/cancel\/?$/,
+    target: (match) => `/api/dashboard/market/events/${match[1]}/cancel`,
+    scope: "market:admin",
+  },
+  {
+    method: "POST",
+    pattern: /^\/api\/dashboard\/market\/events\/supersede\/?$/,
+    target: "/api/dashboard/market/events/supersede",
+    scope: "market:admin",
+  },
+];
+
 const cachedTokensByScope = new Map();
 
 if (require.main === module) {
@@ -105,6 +132,24 @@ async function handleRequest(request, response) {
 
   if (request.method === "GET" && requestUrl.pathname === "/health") {
     sendText(response, 200, "ok");
+    return;
+  }
+
+  const approvedAuthenticatedWriteRoute = matchApprovedAuthenticatedWriteRoute(
+    request.method,
+    requestUrl.pathname,
+  );
+
+  if (approvedAuthenticatedWriteRoute) {
+    const token = await getAccessToken(approvedAuthenticatedWriteRoute.scope);
+    await proxyRequest(
+      request,
+      response,
+      `${approvedAuthenticatedWriteRoute.targetPath}${requestUrl.search}`,
+      {
+        authorization: `Bearer ${token}`,
+      },
+    );
     return;
   }
 
@@ -173,8 +218,24 @@ function matchApprovedWriteRoute(method, pathname) {
   return null;
 }
 
+function matchApprovedAuthenticatedWriteRoute(method, pathname) {
+  return matchApprovedAuthenticatedRoute(
+    approvedAuthenticatedWriteRoutes,
+    method,
+    pathname,
+  );
+}
+
 function matchApprovedAuthenticatedReadRoute(method, pathname) {
-  for (const route of approvedAuthenticatedReadRoutes) {
+  return matchApprovedAuthenticatedRoute(
+    approvedAuthenticatedReadRoutes,
+    method,
+    pathname,
+  );
+}
+
+function matchApprovedAuthenticatedRoute(routes, method, pathname) {
+  for (const route of routes) {
     if (route.method !== method) {
       continue;
     }
@@ -308,5 +369,6 @@ function sendText(response, status, message) {
 
 module.exports = {
   matchApprovedAuthenticatedReadRoute,
+  matchApprovedAuthenticatedWriteRoute,
   matchApprovedWriteRoute,
 };

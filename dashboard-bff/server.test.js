@@ -3,6 +3,7 @@ const { test } = require("node:test");
 
 const {
   matchApprovedAuthenticatedReadRoute,
+  matchApprovedAuthenticatedWriteRoute,
   matchApprovedWriteRoute,
 } = require("./server.js");
 
@@ -101,6 +102,49 @@ test("allows market events admin read route with market admin scope", () => {
   );
 });
 
+test("allows market events admin mutation routes with market admin scope", () => {
+  assert.deepEqual(
+    matchApprovedAuthenticatedWriteRoute(
+      "POST",
+      "/api/dashboard/market/events",
+    ),
+    {
+      targetPath: "/api/dashboard/market/events",
+      scope: "market:admin",
+    },
+  );
+  assert.deepEqual(
+    matchApprovedAuthenticatedWriteRoute(
+      "PATCH",
+      "/api/dashboard/market/events/summer-sale",
+    ),
+    {
+      targetPath: "/api/dashboard/market/events/summer-sale",
+      scope: "market:admin",
+    },
+  );
+  assert.deepEqual(
+    matchApprovedAuthenticatedWriteRoute(
+      "POST",
+      "/api/dashboard/market/events/summer-sale/cancel",
+    ),
+    {
+      targetPath: "/api/dashboard/market/events/summer-sale/cancel",
+      scope: "market:admin",
+    },
+  );
+  assert.deepEqual(
+    matchApprovedAuthenticatedWriteRoute(
+      "POST",
+      "/api/dashboard/market/events/supersede",
+    ),
+    {
+      targetPath: "/api/dashboard/market/events/supersede",
+      scope: "market:admin",
+    },
+  );
+});
+
 test("rejects direct API writes and unapproved dashboard paths", () => {
   assert.equal(matchApprovedWriteRoute("POST", "/api/players"), null);
   assert.equal(matchApprovedWriteRoute("PATCH", "/api/balances/example"), null);
@@ -113,6 +157,13 @@ test("rejects direct API writes and unapproved dashboard paths", () => {
   );
   assert.equal(
     matchApprovedAuthenticatedReadRoute("POST", "/api/dashboard/market/events"),
+    null,
+  );
+  assert.equal(
+    matchApprovedAuthenticatedWriteRoute(
+      "DELETE",
+      "/api/dashboard/market/events/summer-sale",
+    ),
     null,
   );
 });
