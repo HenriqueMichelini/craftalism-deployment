@@ -145,6 +145,19 @@ test("allows market events admin mutation routes with market admin scope", () =>
   );
 });
 
+test("allows market drift reset with market admin scope", () => {
+  assert.deepEqual(
+    matchApprovedAuthenticatedWriteRoute(
+      "POST",
+      "/api/dashboard/market/drift/reset",
+    ),
+    {
+      targetPath: "/api/dashboard/market/drift/reset",
+      scope: "market:admin",
+    },
+  );
+});
+
 test("rejects direct API writes and unapproved dashboard paths", () => {
   assert.equal(matchApprovedWriteRoute("POST", "/api/players"), null);
   assert.equal(matchApprovedWriteRoute("PATCH", "/api/balances/example"), null);

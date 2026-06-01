@@ -55,7 +55,7 @@ For tailnet-only remote access during local development, keep these loopback
 bindings and use the [Tailscale Serve helper scripts](docs/tailscale-serve-local.md).
 They expose the dashboard through Tailscale Serve without enabling public
 Tailscale Funnel access. Direct API exposure is available as an explicit option
-when needed.
+when needed. Minecraft TCP exposure is available with `--minecraft`.
 
 ### Path assumptions (local development)
 

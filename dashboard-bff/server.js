@@ -86,6 +86,12 @@ const approvedAuthenticatedReadRoutes = [
 const approvedAuthenticatedWriteRoutes = [
   {
     method: "POST",
+    pattern: /^\/api\/dashboard\/market\/drift\/reset\/?$/,
+    target: "/api/dashboard/market/drift/reset",
+    scope: "market:admin",
+  },
+  {
+    method: "POST",
     pattern: /^\/api\/dashboard\/market\/events\/?$/,
     target: "/api/dashboard/market/events",
     scope: "market:admin",
