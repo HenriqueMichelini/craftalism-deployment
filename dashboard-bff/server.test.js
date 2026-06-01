@@ -102,6 +102,29 @@ test("allows market events admin read route with market admin scope", () => {
   );
 });
 
+test("allows market event template admin read route with market admin scope", () => {
+  assert.deepEqual(
+    matchApprovedAuthenticatedReadRoute(
+      "GET",
+      "/api/dashboard/market/event-templates",
+    ),
+    {
+      targetPath: "/api/dashboard/market/event-templates",
+      scope: "market:admin",
+    },
+  );
+  assert.deepEqual(
+    matchApprovedAuthenticatedReadRoute(
+      "GET",
+      "/api/dashboard/market/event-templates/",
+    ),
+    {
+      targetPath: "/api/dashboard/market/event-templates",
+      scope: "market:admin",
+    },
+  );
+});
+
 test("allows market events admin mutation routes with market admin scope", () => {
   assert.deepEqual(
     matchApprovedAuthenticatedWriteRoute(
@@ -145,6 +168,29 @@ test("allows market events admin mutation routes with market admin scope", () =>
   );
 });
 
+test("allows market event template admin create route with market admin scope", () => {
+  assert.deepEqual(
+    matchApprovedAuthenticatedWriteRoute(
+      "POST",
+      "/api/dashboard/market/event-templates",
+    ),
+    {
+      targetPath: "/api/dashboard/market/event-templates",
+      scope: "market:admin",
+    },
+  );
+  assert.deepEqual(
+    matchApprovedAuthenticatedWriteRoute(
+      "POST",
+      "/api/dashboard/market/event-templates/",
+    ),
+    {
+      targetPath: "/api/dashboard/market/event-templates",
+      scope: "market:admin",
+    },
+  );
+});
+
 test("allows market drift reset with market admin scope", () => {
   assert.deepEqual(
     matchApprovedAuthenticatedWriteRoute(
@@ -176,6 +222,13 @@ test("rejects direct API writes and unapproved dashboard paths", () => {
     matchApprovedAuthenticatedWriteRoute(
       "DELETE",
       "/api/dashboard/market/events/summer-sale",
+    ),
+    null,
+  );
+  assert.equal(
+    matchApprovedAuthenticatedWriteRoute(
+      "DELETE",
+      "/api/dashboard/market/event-templates/example",
     ),
     null,
   );

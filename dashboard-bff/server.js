@@ -81,6 +81,12 @@ const approvedAuthenticatedReadRoutes = [
     target: "/api/dashboard/market/events",
     scope: "market:admin",
   },
+  {
+    method: "GET",
+    pattern: /^\/api\/dashboard\/market\/event-templates\/?$/,
+    target: "/api/dashboard/market/event-templates",
+    scope: "market:admin",
+  },
 ];
 
 const approvedAuthenticatedWriteRoutes = [
@@ -112,6 +118,12 @@ const approvedAuthenticatedWriteRoutes = [
     method: "POST",
     pattern: /^\/api\/dashboard\/market\/events\/supersede\/?$/,
     target: "/api/dashboard/market/events/supersede",
+    scope: "market:admin",
+  },
+  {
+    method: "POST",
+    pattern: /^\/api\/dashboard\/market\/event-templates\/?$/,
+    target: "/api/dashboard/market/event-templates",
     scope: "market:admin",
   },
 ];
