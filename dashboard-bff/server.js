@@ -11,7 +11,7 @@ const tokenUrl =
 const clientId = process.env.DASHBOARD_BFF_CLIENT_ID || "dashboard-bff";
 const clientSecret = process.env.DASHBOARD_BFF_CLIENT_SECRET;
 
-const approvedWriteRoutes = [
+const approvedApiWriteRoutes = [
   {
     method: "POST",
     pattern: /^\/api\/dashboard\/players\/?$/,
@@ -74,7 +74,7 @@ const approvedWriteRoutes = [
   },
 ];
 
-const approvedAuthenticatedReadRoutes = [
+const approvedScopedReadRoutes = [
   {
     method: "GET",
     pattern: /^\/api\/dashboard\/market\/events\/?$/,
@@ -89,7 +89,7 @@ const approvedAuthenticatedReadRoutes = [
   },
 ];
 
-const approvedAuthenticatedWriteRoutes = [
+const approvedScopedWriteRoutes = [
   {
     method: "POST",
     pattern: /^\/api\/dashboard\/market\/drift\/reset\/?$/,
@@ -126,6 +126,18 @@ const approvedAuthenticatedWriteRoutes = [
     target: "/api/dashboard/market/event-templates",
     scope: "market:admin",
   },
+  {
+    method: "PUT",
+    pattern: /^\/api\/dashboard\/market\/event-templates\/([^/]+)\/?$/,
+    target: (match) => `/api/dashboard/market/event-templates/${match[1]}`,
+    scope: "market:admin",
+  },
+  {
+    method: "DELETE",
+    pattern: /^\/api\/dashboard\/market\/event-templates\/([^/]+)\/?$/,
+    target: (match) => `/api/dashboard/market/event-templates/${match[1]}`,
+    scope: "market:admin",
+  },
 ];
 
 const cachedTokensByScope = new Map();
@@ -153,17 +165,17 @@ async function handleRequest(request, response) {
     return;
   }
 
-  const approvedAuthenticatedWriteRoute = matchApprovedAuthenticatedWriteRoute(
+  const approvedScopedWriteRoute = matchApprovedScopedWriteRoute(
     request.method,
     requestUrl.pathname,
   );
 
-  if (approvedAuthenticatedWriteRoute) {
-    const token = await getAccessToken(approvedAuthenticatedWriteRoute.scope);
+  if (approvedScopedWriteRoute) {
+    const token = await getAccessToken(approvedScopedWriteRoute.scope);
     await proxyRequest(
       request,
       response,
-      `${approvedAuthenticatedWriteRoute.targetPath}${requestUrl.search}`,
+      `${approvedScopedWriteRoute.targetPath}${requestUrl.search}`,
       {
         authorization: `Bearer ${token}`,
       },
@@ -171,30 +183,30 @@ async function handleRequest(request, response) {
     return;
   }
 
-  const approvedWriteRoute = matchApprovedWriteRoute(
+  const approvedApiWriteRoute = matchApprovedApiWriteRoute(
     request.method,
     requestUrl.pathname,
   );
 
-  if (approvedWriteRoute) {
+  if (approvedApiWriteRoute) {
     const token = await getAccessToken("api:write");
-    await proxyRequest(request, response, approvedWriteRoute, {
+    await proxyRequest(request, response, approvedApiWriteRoute, {
       authorization: `Bearer ${token}`,
     });
     return;
   }
 
-  const approvedAuthenticatedReadRoute = matchApprovedAuthenticatedReadRoute(
+  const approvedScopedReadRoute = matchApprovedScopedReadRoute(
     request.method,
     requestUrl.pathname,
   );
 
-  if (approvedAuthenticatedReadRoute) {
-    const token = await getAccessToken(approvedAuthenticatedReadRoute.scope);
+  if (approvedScopedReadRoute) {
+    const token = await getAccessToken(approvedScopedReadRoute.scope);
     await proxyRequest(
       request,
       response,
-      `${approvedAuthenticatedReadRoute.targetPath}${requestUrl.search}`,
+      `${approvedScopedReadRoute.targetPath}${requestUrl.search}`,
       {
         authorization: `Bearer ${token}`,
       },
@@ -215,8 +227,8 @@ async function handleRequest(request, response) {
   sendText(response, 404, "Not Found");
 }
 
-function matchApprovedWriteRoute(method, pathname) {
-  for (const route of approvedWriteRoutes) {
+function matchApprovedApiWriteRoute(method, pathname) {
+  for (const route of approvedApiWriteRoutes) {
     if (route.method !== method) {
       continue;
     }
@@ -236,23 +248,23 @@ function matchApprovedWriteRoute(method, pathname) {
   return null;
 }
 
-function matchApprovedAuthenticatedWriteRoute(method, pathname) {
-  return matchApprovedAuthenticatedRoute(
-    approvedAuthenticatedWriteRoutes,
+function matchApprovedScopedWriteRoute(method, pathname) {
+  return matchApprovedScopedRoute(
+    approvedScopedWriteRoutes,
     method,
     pathname,
   );
 }
 
-function matchApprovedAuthenticatedReadRoute(method, pathname) {
-  return matchApprovedAuthenticatedRoute(
-    approvedAuthenticatedReadRoutes,
+function matchApprovedScopedReadRoute(method, pathname) {
+  return matchApprovedScopedRoute(
+    approvedScopedReadRoutes,
     method,
     pathname,
   );
 }
 
-function matchApprovedAuthenticatedRoute(routes, method, pathname) {
+function matchApprovedScopedRoute(routes, method, pathname) {
   for (const route of routes) {
     if (route.method !== method) {
       continue;
@@ -386,7 +398,7 @@ function sendText(response, status, message) {
 }
 
 module.exports = {
-  matchApprovedAuthenticatedReadRoute,
-  matchApprovedAuthenticatedWriteRoute,
-  matchApprovedWriteRoute,
+  matchApprovedApiWriteRoute,
+  matchApprovedScopedReadRoute,
+  matchApprovedScopedWriteRoute,
 };
