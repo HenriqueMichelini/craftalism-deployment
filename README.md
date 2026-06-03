@@ -112,7 +112,6 @@ Optional behavior flags:
 - `CLEAN_PLUGIN_BUILD=1 ./local` to force clean plugin build via bootstrap.
 - `LOCAL_BUILD_RETRIES=5 ./local` to retry transient local docker builds (default: 3 attempts).
 - `CRAFTALISM_RUNTIME_PROFILE=standard ./prod` to raise deployment-owned memory defaults above the small-host preset.
-- `CRAFTALISM_PROD_VARIANT=friend-paper ./prod` to run production with `docker-compose.friend-paper.yml`.
 - `./prod config` to render the production compose configuration after runtime guardrail validation.
 - `scripts/resolve-image-digests.sh --env-file .env --mode test --write` to resolve only digests needed by `./test`.
 
@@ -276,39 +275,6 @@ For `t3.small` testing, this repo now supports profile-driven runtime ceilings t
 - The Java defaults now use explicit heap, metaspace, reserved code cache, reduced thread stacks, and fail-fast OOM behavior so the container budget remains enforceable.
 
 These defaults are aimed at survival on a hobby-scale `t3.small`. If the host still thrashes or player load is non-trivial, move to `t3.medium`.
-
-### Friend Paper server override
-
-For a small Paper server with two extra plugin jars:
-
-```bash
-cp env.friend-paper.example .env.friend-paper
-# TreeChopper is enabled by default through FRIEND_PAPER_MODRINTH_PROJECTS.
-# Optionally add more trusted Paper/Bukkit/Spigot plugin jar URLs with MINECRAFT_EXTRA_PLUGIN_URLS.
-CRAFTALISM_PROD_VARIANT=friend-paper ./prod
-```
-
-`./prod down` must be run with the same variant when stopping this compose set:
-
-```bash
-CRAFTALISM_PROD_VARIANT=friend-paper ./prod down
-```
-
-This override installs the TreeChopper Paper plugin from Modrinth. It does not make Paper load Forge, Fabric, or NeoForge mods. If those two requested jars are real mods, use a separate mod-loader server type instead and expect the Craftalism Paper plugins to be out of scope for that server.
-
-### Friend modded server override
-
-For real Forge, Fabric, NeoForge, or Quilt mods, run a separate modded server:
-
-```bash
-cp env.friend-modded.example .env.friend-modded
-# edit FRIEND_MODDED_TYPE, FRIEND_MODDED_MINECRAFT_VERSION, and FRIEND_MODDED_MOD_URLS
-docker compose --env-file .env.friend-modded -f docker-compose.friend-modded.yml up -d
-```
-
-This starts only `minecraft-modded` with its own `minecraft_modded_data` volume. It does not load the Craftalism Paper plugins or depend on the Craftalism API stack.
-
----
 
 ## Health checks
 

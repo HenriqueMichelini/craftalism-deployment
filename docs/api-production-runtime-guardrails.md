@@ -12,7 +12,7 @@ The production API profile gives Spring Boot explicit JVM ceilings instead of re
 
 The small-host profile pairs that with `API_MEM_LIMIT=576m` and `API_MEM_RESERVATION=384m`. The `standard` profile raises the API JVM and container budget for less constrained hosts.
 
-The small-host values come from the `craftalism-api:1.1.2` runtime diagnostics on the `friend-paper` variant: heap stayed healthy below the `144m` max, metaspace used roughly `86-89MiB`, code cache committed roughly `16-17MiB`, and the process had about 25 threads. The old `96m` metaspace cap was fragile; `128m` is the measured steady-state cap to keep. Native Memory Tracking is diagnostic-only and should not stay in steady-state `JAVA_TOOL_OPTIONS`.
+The small-host values come from `craftalism-api:1.1.2` runtime diagnostics: heap stayed healthy below the `144m` max, metaspace used roughly `86-89MiB`, code cache committed roughly `16-17MiB`, and the process had about 25 threads. The old `96m` metaspace cap was fragile; `128m` is the measured steady-state cap to keep. Native Memory Tracking is diagnostic-only and should not stay in steady-state `JAVA_TOOL_OPTIONS`.
 
 `./prod` validates that the configured JVM budget fits inside `API_MEM_LIMIT` before startup or config rendering. The validation accounts for:
 
