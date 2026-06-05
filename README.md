@@ -274,6 +274,7 @@ Production requirements:
 - Economy and market plugins are downloaded from GitHub Releases using `ECONOMY_VERSION` and `MARKET_VERSION`.
 - Image references are configured as `repo:tag@sha256:...` so deployments are immutable by default.
 - `craftalism-infra` owns the public edge proxy, TLS termination, and dashboard basic auth for the EC2 deployment path.
+- The optional `standalone-edge` profile in this repo now enforces dashboard basic auth in its local Caddy config when `DASHBOARD_BASIC_AUTH_USERNAME` and `DASHBOARD_BASIC_AUTH_PASSWORD_HASH` are set.
 - `./prod up` fails fast and prints missing variable names when required production configuration is not set.
 - `./prod up` and `./prod config` validate deployment-owned memory budgets so JVM heap, metaspace, reserved code cache, thread stacks, native headroom, and Minecraft heap settings fit inside each container limit.
 - API SpringDoc and Swagger UI are disabled by default in production through `API_SPRINGDOC_API_DOCS_ENABLED=false` and `API_SPRINGDOC_SWAGGER_UI_ENABLED=false`. Local development intentionally enables them in `docker-compose.local.yml`.

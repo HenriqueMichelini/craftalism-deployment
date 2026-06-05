@@ -12,6 +12,7 @@ services:
     environment:
       DASHBOARD_SITE_ADDRESS: ${DASHBOARD_SITE_ADDRESS:-dashboard.localhost}
       AUTH_SITE_ADDRESS: ${AUTH_SITE_ADDRESS:-auth.localhost}
+      API_SITE_ADDRESS: ${API_SITE_ADDRESS:-api.localhost}
       DASHBOARD_BASIC_AUTH_USERNAME: ${DASHBOARD_BASIC_AUTH_USERNAME:-unused-local-user}
       DASHBOARD_BASIC_AUTH_PASSWORD_HASH: ${DASHBOARD_BASIC_AUTH_PASSWORD_HASH:-unused-local-hash}
     ports:
@@ -26,6 +27,15 @@ services:
     networks:
       - craftalism
     restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "caddy validate --config /etc/caddy/Caddyfile && wget --no-verbose --tries=1 --spider http://localhost/ || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Default (production) behavior: image tags come from VERSION env vars.
   # Pin these in .env (e.g., API_VERSION=v1.2.3) for reproducible production deploys.
@@ -361,6 +371,7 @@ volumes:
   postgres_data:
     driver: local
   minecraft_data:
+    name: craftalism-deployment_minecraft_data
     driver: local
 
 networks:

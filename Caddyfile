@@ -1,11 +1,19 @@
-{$DASHBOARD_SITE_ADDRESS} {
-	basicauth {
+http://localhost, https://localhost {
+	reverse_proxy dashboard:80
+}
+
+{$DASHBOARD_SITE_ADDRESS:dashboard.localhost} {
+	basic_auth {
 		{$DASHBOARD_BASIC_AUTH_USERNAME} {$DASHBOARD_BASIC_AUTH_PASSWORD_HASH}
 	}
 
 	reverse_proxy dashboard:80
 }
 
-{$AUTH_SITE_ADDRESS} {
+{$AUTH_SITE_ADDRESS:auth.localhost} {
 	reverse_proxy auth-server:9000
+}
+
+{$API_SITE_ADDRESS:api.localhost} {
+	reverse_proxy api:8080
 }
