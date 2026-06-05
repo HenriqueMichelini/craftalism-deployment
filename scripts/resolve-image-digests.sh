@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Resolves current image digests for deployment images from versions in an env file.
 # Usage:
-#   scripts/resolve-image-digests.sh [--env-file path] [--write] [--mode all|prod|test] [--allow-missing]
+#   scripts/resolve-image-digests.sh [--env-file path] [--write] [--mode all|prod|test] [--service auth-server|api|dashboard] [--allow-missing]
 #
 # Default mode prints:
 #   AUTH_SERVER_DIGEST=sha256:...
@@ -18,6 +18,7 @@ ENV_FILE=".env"
 WRITE_MODE=0
 MODE="all"
 ALLOW_MISSING=0
+SERVICE=""
 
 while (($# > 0)); do
   case "$1" in
@@ -37,9 +38,13 @@ while (($# > 0)); do
       ALLOW_MISSING=1
       shift
       ;;
+    --service)
+      SERVICE="${2:-}"
+      shift 2
+      ;;
     *)
       echo "Unknown argument: $1" >&2
-      echo "Usage: scripts/resolve-image-digests.sh [--env-file path] [--write] [--mode all|prod|test] [--allow-missing]" >&2
+      echo "Usage: scripts/resolve-image-digests.sh [--env-file path] [--write] [--mode all|prod|test] [--service auth-server|api|dashboard] [--allow-missing]" >&2
       exit 1
       ;;
   esac
@@ -47,6 +52,16 @@ done
 
 if [[ "$MODE" != "all" && "$MODE" != "prod" && "$MODE" != "test" ]]; then
   echo "Invalid --mode value: $MODE (expected all, prod, or test)" >&2
+  exit 1
+fi
+
+if [[ -n "$SERVICE" && "$SERVICE" != "auth-server" && "$SERVICE" != "api" && "$SERVICE" != "dashboard" ]]; then
+  echo "Invalid --service value: $SERVICE (expected auth-server, api, or dashboard)" >&2
+  exit 1
+fi
+
+if [[ -n "$SERVICE" && "$MODE" == "test" ]]; then
+  echo "--service cannot be used with --mode test" >&2
   exit 1
 fi
 
@@ -169,9 +184,15 @@ POSTGRES_VERSION="${POSTGRES_VERSION:-18-alpine}"
 MINECRAFT_IMAGE_VERSION="${MINECRAFT_IMAGE_VERSION:-java21}"
 
 if [[ "$MODE" == "all" || "$MODE" == "prod" ]]; then
-  require_var AUTH_SERVER_VERSION
-  require_var API_VERSION
-  require_var DASHBOARD_VERSION
+  if [[ -z "$SERVICE" || "$SERVICE" == "auth-server" ]]; then
+    require_var AUTH_SERVER_VERSION
+  fi
+  if [[ -z "$SERVICE" || "$SERVICE" == "api" ]]; then
+    require_var API_VERSION
+  fi
+  if [[ -z "$SERVICE" || "$SERVICE" == "dashboard" ]]; then
+    require_var DASHBOARD_VERSION
+  fi
 
   AUTH_SERVER_FALLBACK=""
   API_FALLBACK=""
@@ -187,34 +208,52 @@ if [[ "$MODE" == "all" || "$MODE" == "prod" ]]; then
     DASHBOARD_FALLBACK="ghcr.io/henriquemichelini/craftalism-dashboard:${DASHBOARD_CI_TAG}"
   fi
 
-  AUTH_SERVER_DIGEST="$(resolve_or_fail AUTH_SERVER_DIGEST "ghcr.io/henriquemichelini/craftalism-authorization-server:${AUTH_SERVER_VERSION}" "$AUTH_SERVER_FALLBACK")"
-  API_DIGEST="$(resolve_or_fail API_DIGEST "ghcr.io/henriquemichelini/craftalism-api:${API_VERSION}" "$API_FALLBACK")"
-  DASHBOARD_DIGEST="$(resolve_or_fail DASHBOARD_DIGEST "ghcr.io/henriquemichelini/craftalism-dashboard:${DASHBOARD_VERSION}" "$DASHBOARD_FALLBACK")"
+  if [[ -z "$SERVICE" || "$SERVICE" == "auth-server" ]]; then
+    AUTH_SERVER_DIGEST="$(resolve_or_fail AUTH_SERVER_DIGEST "ghcr.io/henriquemichelini/craftalism-authorization-server:${AUTH_SERVER_VERSION}" "$AUTH_SERVER_FALLBACK")"
+  fi
+  if [[ -z "$SERVICE" || "$SERVICE" == "api" ]]; then
+    API_DIGEST="$(resolve_or_fail API_DIGEST "ghcr.io/henriquemichelini/craftalism-api:${API_VERSION}" "$API_FALLBACK")"
+  fi
+  if [[ -z "$SERVICE" || "$SERVICE" == "dashboard" ]]; then
+    DASHBOARD_DIGEST="$(resolve_or_fail DASHBOARD_DIGEST "ghcr.io/henriquemichelini/craftalism-dashboard:${DASHBOARD_VERSION}" "$DASHBOARD_FALLBACK")"
+  fi
 fi
 
-if [[ "$MODE" == "all" || "$MODE" == "prod" || "$MODE" == "test" ]]; then
+if [[ -z "$SERVICE" && ( "$MODE" == "all" || "$MODE" == "prod" || "$MODE" == "test" ) ]]; then
   POSTGRES_DIGEST="$(resolve_or_fail POSTGRES_DIGEST "postgres:${POSTGRES_VERSION}")"
   MINECRAFT_IMAGE_DIGEST="$(resolve_or_fail MINECRAFT_IMAGE_DIGEST "itzg/minecraft-server:${MINECRAFT_IMAGE_VERSION}")"
 fi
 
 if [[ "$WRITE_MODE" == "1" ]]; then
   if [[ "$MODE" == "all" || "$MODE" == "prod" ]]; then
-    replace_or_append AUTH_SERVER_DIGEST "$AUTH_SERVER_DIGEST"
-    replace_or_append API_DIGEST "$API_DIGEST"
-    replace_or_append DASHBOARD_DIGEST "$DASHBOARD_DIGEST"
+    if [[ -z "$SERVICE" || "$SERVICE" == "auth-server" ]]; then
+      replace_or_append AUTH_SERVER_DIGEST "$AUTH_SERVER_DIGEST"
+    fi
+    if [[ -z "$SERVICE" || "$SERVICE" == "api" ]]; then
+      replace_or_append API_DIGEST "$API_DIGEST"
+    fi
+    if [[ -z "$SERVICE" || "$SERVICE" == "dashboard" ]]; then
+      replace_or_append DASHBOARD_DIGEST "$DASHBOARD_DIGEST"
+    fi
   fi
-  if [[ "$MODE" == "all" || "$MODE" == "prod" || "$MODE" == "test" ]]; then
+  if [[ -z "$SERVICE" && ( "$MODE" == "all" || "$MODE" == "prod" || "$MODE" == "test" ) ]]; then
     replace_or_append POSTGRES_DIGEST "$POSTGRES_DIGEST"
     replace_or_append MINECRAFT_IMAGE_DIGEST "$MINECRAFT_IMAGE_DIGEST"
   fi
   echo "Updated digest variables in $ENV_FILE"
 else
   if [[ "$MODE" == "all" || "$MODE" == "prod" ]]; then
-    echo "AUTH_SERVER_DIGEST=$AUTH_SERVER_DIGEST"
-    echo "API_DIGEST=$API_DIGEST"
-    echo "DASHBOARD_DIGEST=$DASHBOARD_DIGEST"
+    if [[ -z "$SERVICE" || "$SERVICE" == "auth-server" ]]; then
+      echo "AUTH_SERVER_DIGEST=$AUTH_SERVER_DIGEST"
+    fi
+    if [[ -z "$SERVICE" || "$SERVICE" == "api" ]]; then
+      echo "API_DIGEST=$API_DIGEST"
+    fi
+    if [[ -z "$SERVICE" || "$SERVICE" == "dashboard" ]]; then
+      echo "DASHBOARD_DIGEST=$DASHBOARD_DIGEST"
+    fi
   fi
-  if [[ "$MODE" == "all" || "$MODE" == "prod" || "$MODE" == "test" ]]; then
+  if [[ -z "$SERVICE" && ( "$MODE" == "all" || "$MODE" == "prod" || "$MODE" == "test" ) ]]; then
     echo "POSTGRES_DIGEST=$POSTGRES_DIGEST"
     echo "MINECRAFT_IMAGE_DIGEST=$MINECRAFT_IMAGE_DIGEST"
   fi

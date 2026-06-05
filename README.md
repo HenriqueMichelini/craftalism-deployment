@@ -92,6 +92,7 @@ From repo root, you can now run:
 ./test
 ./test down
 ./prod
+./prod deploy dashboard
 ./prod down
 ./prod ps
 ```
@@ -103,6 +104,7 @@ What each command does:
 - `./test`: ensures local plugin jar exists, auto-populates CI tag env vars from current git branch/sha if absent, provides safe defaults for base-compose required vars, refreshes test base-image digests when enabled, and for app services falls back to local `*:local` images when remote CI tags are unavailable.
 - `./test down`: stops/removes the test stack with test compose overrides.
 - `./prod`: optionally refreshes pinned image digests into `.env`, reuses those pulls when available, and starts the production stack on localhost-only upstream ports for the infra-managed edge.
+- `./prod deploy <auth-server|api|dashboard>`: resolves only that released service's digest, explicitly replaces its production container without restarting dependencies, and verifies the active image reference.
 - `./prod down`: stops/removes the production stack.
 - `./prod ps`: lists containers for the selected production compose set.
 - `scripts/monitor-platform.sh`: prints a host and container runtime snapshot; use `--watch=3` for a live refresh loop on EC2.
@@ -248,6 +250,19 @@ docker compose up -d
 Use `./prod` for the checked production path. It validates required production
 configuration, refreshes image digests unless disabled, pre-pulls images, and
 starts the selected production compose set.
+
+For a targeted application release after updating its immutable version in
+`.env`, use:
+
+```bash
+./prod deploy dashboard
+```
+
+The targeted deploy resolves only the selected service digest, stops and
+removes its existing container, starts the replacement without dependencies,
+waits for it to become healthy, and fails if the active image reference does
+not match the configured release. Override the 120-second health timeout with
+`PROD_DEPLOY_WAIT_TIMEOUT` when needed.
 
 Production requirements:
 - Publicly expose only `80`, `443`, and `25565` at the EC2/security-group layer. Keep `9000`, `3000`, `8080`, and `25575` private.

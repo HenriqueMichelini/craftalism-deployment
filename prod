@@ -4,9 +4,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR"
 
-ACTIONS_HELP="Usage: ./prod [up|down|config|ps]"
+ACTIONS_HELP="Usage: ./prod [up|down|config|ps|deploy <auth-server|api|dashboard>]"
 ACTION="${1:-up}"
-if [[ "$ACTION" != "up" && "$ACTION" != "down" && "$ACTION" != "config" && "$ACTION" != "ps" ]]; then
+if [[ "$ACTION" != "up" && "$ACTION" != "down" && "$ACTION" != "config" && "$ACTION" != "ps" && "$ACTION" != "deploy" ]]; then
   echo "$ACTIONS_HELP" >&2
   exit 1
 fi
@@ -29,6 +29,12 @@ load_env_var() {
   if [[ -n "$value" ]]; then
     export "$key=$value"
   fi
+}
+
+reload_env_var() {
+  local key="$1"
+  unset "$key"
+  load_env_var "$key"
 }
 
 configure_prod_compose() {
@@ -194,6 +200,65 @@ validate_positive_integer() {
   fi
 }
 
+deploy_prod_service() {
+  local service="${1:-}"
+  local container_name=""
+  local digest_key=""
+  local expected_image=""
+
+  case "$service" in
+    auth-server)
+      container_name="craftalism-auth-server"
+      digest_key="AUTH_SERVER_DIGEST"
+      ;;
+    api)
+      container_name="craftalism-api"
+      digest_key="API_DIGEST"
+      ;;
+    dashboard)
+      container_name="craftalism-dashboard"
+      digest_key="DASHBOARD_DIGEST"
+      ;;
+    *)
+      echo "[prod] Usage: ./prod deploy <auth-server|api|dashboard>" >&2
+      exit 1
+      ;;
+  esac
+
+  if (($# > 1)); then
+    echo "[prod] The deploy action accepts exactly one service." >&2
+    exit 1
+  fi
+
+  echo "[prod] Resolving the ${service} release digest..."
+  scripts/resolve-image-digests.sh --env-file .env --mode prod --service "$service" --write
+  reload_env_var "$digest_key"
+  expected_image="$(docker_compose "${PROD_COMPOSE_ARGS[@]}" config | awk -v container="$container_name" '
+    $1 == "container_name:" { current_container = $2 }
+    current_container == container && $1 == "image:" { print $2; exit }
+  ')"
+  if [[ -z "$expected_image" ]]; then
+    echo "[prod] Could not resolve the configured image for ${service}." >&2
+    exit 1
+  fi
+
+  echo "[prod] Replacing ${service} with ${expected_image}..."
+  docker_compose "${PROD_COMPOSE_ARGS[@]}" stop "$service"
+  docker_compose "${PROD_COMPOSE_ARGS[@]}" rm -f "$service"
+  docker_compose "${PROD_COMPOSE_ARGS[@]}" up -d --no-deps --wait --wait-timeout "${PROD_DEPLOY_WAIT_TIMEOUT:-120}" "$service"
+
+  local active_image
+  active_image="$(docker inspect "$container_name" --format '{{.Config.Image}}')"
+  if [[ "$active_image" != "$expected_image" ]]; then
+    echo "[prod] Active ${service} image does not match the configured release." >&2
+    echo "[prod] Expected: ${expected_image}" >&2
+    echo "[prod] Active:   ${active_image}" >&2
+    exit 1
+  fi
+
+  echo "[prod] Active ${service} image: ${active_image}"
+}
+
 if [[ ! -f .env ]]; then
   cp env.example .env
   echo "[prod] Created .env from env.example"
@@ -228,10 +293,20 @@ require_prod_vars
 validate_prod_runtime_memory
 validate_prod_market_rate_limits
 
+if [[ "$ACTION" == "deploy" ]]; then
+  deploy_prod_service "$@"
+  exit 0
+fi
+
 digests_refreshed=0
 if [[ "${SKIP_DIGEST_REFRESH:-0}" != "1" ]]; then
   echo "[prod] Refreshing image digests in .env..."
   scripts/resolve-image-digests.sh --env-file .env --write
+  reload_env_var AUTH_SERVER_DIGEST
+  reload_env_var API_DIGEST
+  reload_env_var DASHBOARD_DIGEST
+  reload_env_var POSTGRES_DIGEST
+  reload_env_var MINECRAFT_IMAGE_DIGEST
   digests_refreshed=1
 else
   echo "[prod] Skipping digest refresh (SKIP_DIGEST_REFRESH=1)"
