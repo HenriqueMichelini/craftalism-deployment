@@ -1,313 +1,258 @@
 # Craftalism Deployment
 
-Docker Compose orchestration for the Craftalism platform with **explicitly separated workflows**:
+Docker Compose orchestration for the Craftalism platform. This repository owns service wiring, environment alignment, runtime limits, image selection, and the helper scripts used to run the stack in three modes:
 
-1. **Local development** (`docker-compose.yml` + `docker-compose.local.yml`)
-2. **Staging / test** (`docker-compose.yml` + `docker-compose.test.yml`)
-3. **Production** (`docker-compose.yml` behind the infra-managed host edge)
+| Mode | Compose files | Application artifacts | Main command |
+| --- | --- | --- | --- |
+| Local development | `docker-compose.yml` + `docker-compose.local.yml` | Sibling source checkouts and locally built plugin JARs | `./local` |
+| Staging/test | `docker-compose.yml` + `docker-compose.test.yml` | Branch/commit-tagged application images and locally built plugin JARs | `./test` |
+| Production | `docker-compose.yml` | Released, digest-pinned images and released plugin JARs | `./prod` |
 
----
-
-## Why this split exists
-
-- Local development should be fast, editable, and not depend on published releases.
-- Staging/test should be immutable and traceable to a commit.
-- Production should be immutable and tied to released versions only.
-
----
+The baseline stack contains PostgreSQL, a one-shot auth database initializer, the authorization server, API, dashboard BFF, dashboard, a one-shot Minecraft configuration initializer, and the Paper Minecraft server. An optional Caddy service is available through the `standalone-edge` Compose profile; the normal production path uses the host edge managed by `craftalism-infra`.
 
 ## Prerequisites
 
-- Docker Engine 20.10+
-- Docker Compose v2+
-- Git
-- For local plugin builds: JDK compatible with the economy and market plugin projects
-
----
+- Bash, Git, and `curl`
+- Docker Engine with the Docker Compose v2 plugin (`docker compose`)
+- Network and registry access for the images, releases, and repositories used by the selected mode
+- JDK 21 for local economy and market plugin builds; the build scripts use each sibling project's Gradle wrapper
+- Optional: Node.js 20 to run the dashboard BFF unit tests directly
+- Optional: Tailscale for tailnet-only local access
 
 ## Configuration
+
+Create the base environment file:
 
 ```bash
 cp env.example .env
 ```
 
-Set required secrets and issuer config (`DB_PASSWORD`, `MINECRAFT_CLIENT_SECRET`, `RSA_PRIVATE_KEY`, `RSA_PUBLIC_KEY`, `AUTH_ISSUER_URI`, etc.) in `.env`.
+`env.example` is a template. Replace its placeholder values before running the stack. In particular:
 
-For local Docker development, keep production-style values in `.env` if you need them, but put container-network overrides in `.env.local`:
+- Production requires immutable versions and valid SHA-256 digests for the auth server, API, dashboard, PostgreSQL, and Minecraft images.
+- Production also requires released `ECONOMY_VERSION` and `MARKET_VERSION` values.
+- Set real values for `DB_PASSWORD`, `DASHBOARD_BFF_CLIENT_SECRET`, `MINECRAFT_CLIENT_SECRET`, `RCON_PASSWORD`, `AUTH_ISSUER_URI`, `RSA_PRIVATE_KEY`, and `RSA_PUBLIC_KEY`.
+- PEM keys must be stored on one line with literal `\n` separators, as shown in `env.example`.
+- `DASHBOARD_BFF_CLIENT_SECRET` must match the confidential `dashboard-bff` client registered by the authorization server. It is server-side configuration and must not be exposed to browser runtime configuration.
+
+For non-production use, the authorization server can generate ephemeral RSA keys when `RSA_ALLOW_EPHEMERAL=true` and both RSA key values are empty. Production validation rejects missing or placeholder key material.
+
+### Local overrides
+
+Create the optional local override file:
 
 ```bash
 cp .env.local.example .env.local
 ```
 
-`./local` reads `.env` first and then applies `.env.local` overrides, so local auth/API wiring can use internal service URLs such as `http://craftalism-auth-server:9000` without affecting production settings.
+`./local` loads `.env` and then applies supported values from `.env.local`, including the internal issuer and API URLs. This keeps container-network values such as `http://craftalism-auth-server:9000` out of production configuration. The helper creates `.env` and `.env.local` from their examples when absent, but generated files still contain development placeholders that you must review.
 
-For the normal EC2 production path behind `craftalism-infra`, this repo binds
-application upstreams only on loopback and relies on the host Caddy proxy from
-that infra repository to own public `80/443`.
+The local stack still pulls PostgreSQL and Minecraft by digest. Resolve those two base-image digests before the first local run:
 
-Expected localhost bindings:
+```bash
+scripts/resolve-image-digests.sh --env-file .env --mode test --write
+```
 
-- auth server: `127.0.0.1:9000`
-- API: `127.0.0.1:3000`
-- dashboard: `127.0.0.1:8080`
+This command pulls the images and updates `POSTGRES_DIGEST` and `MINECRAFT_IMAGE_DIGEST` in `.env`.
 
-For tailnet-only remote access during local development, keep these loopback
-bindings and use the [Tailscale Serve helper scripts](docs/tailscale-serve-local.md).
-They expose the dashboard through Tailscale Serve without enabling public
-Tailscale Funnel access. Direct API exposure is available as an explicit option
-when needed. Minecraft TCP exposure is available with `--minecraft`.
+### Sibling repository layout
 
-### Path assumptions (local development)
-
-This deployment repository expects sibling checkouts for local build contexts:
+The default local build expects these sibling checkouts:
 
 ```text
 <parent-dir>/
-  craftalism-deployment/                  # this repository
+  craftalism-deployment/
   craftalism-authorization-server/
+    java/
   craftalism-api/
+    java/
   craftalism-dashboard/
+    react/
   craftalism-economy/
     java/
   craftalism-market/
     java/
 ```
 
-If your layout differs, set `*_BUILD_CONTEXT`, `*_DOCKERFILE`, `ECONOMY_PLUGIN_JAR`, and `MARKET_PLUGIN_JAR` explicitly in `.env` (or exported environment variables). The default local build expects these app subdirectory contexts:
+`./local` runs `scripts/bootstrap-local-dev.sh`. Missing siblings are cloned; existing siblings are fetched, switched to the configured branch, and fast-forwarded when that branch exists on `origin`. The default branch is `main`. Set `AUTH_SERVER_BRANCH`, `API_BRANCH`, `DASHBOARD_BRANCH`, `ECONOMY_BRANCH`, or `MARKET_BRANCH` before running the command when another branch is required, and preserve any uncommitted sibling-repository work first.
 
-- `craftalism-authorization-server/java`
-- `craftalism-api/java`
-- `craftalism-dashboard/react`
+If the directory layout differs, set `AUTH_SERVER_BUILD_CONTEXT`, `API_BUILD_CONTEXT`, `DASHBOARD_BUILD_CONTEXT`, `AUTH_SERVER_DOCKERFILE`, `API_DOCKERFILE`, and `DASHBOARD_DOCKERFILE`. Set `ECONOMY_PLUGIN_JAR` and `MARKET_PLUGIN_JAR` when the plugin artifacts are outside `.local-dev/`.
 
----
+## Local development
 
-## Quick start (plug-and-play modes)
-
-From repo root, you can now run:
+Start the full local stack from this repository:
 
 ```bash
 ./local
-./local down
-./local hot dashboard
-./test
-./test down
-./prod
-./prod deploy dashboard
-./prod down
-./prod ps
 ```
 
-What each command does:
-- `./local`: bootstraps local sibling repos, builds local plugin jar, reads `.env` plus optional `.env.local` overrides, and starts local compose (`docker-compose.yml` + `docker-compose.local.yml`).
-- `./local down`: stops/removes the local stack with the same compose file set.
-- `./local hot <service>`: rebuilds/restarts only one local service (for example `./local hot dashboard`) without restarting the full stack.
-- `./test`: ensures local plugin jar exists, auto-populates CI tag env vars from current git branch/sha if absent, provides safe defaults for base-compose required vars, refreshes test base-image digests when enabled, and for app services falls back to local `*:local` images when remote CI tags are unavailable.
-- `./test down`: stops/removes the test stack with test compose overrides.
-- `./prod`: optionally refreshes pinned image digests into `.env`, reuses those pulls when available, and starts the production stack on localhost-only upstream ports for the infra-managed edge.
-- `./prod deploy <auth-server|api|dashboard>`: resolves only that released service's digest, explicitly replaces its production container without restarting dependencies, and verifies the active image reference.
-- `./prod down`: stops/removes the production stack.
-- `./prod ps`: lists containers for the selected production compose set.
-- `scripts/monitor-platform.sh`: prints a host and container runtime snapshot; use `--watch=3` for a live refresh loop on EC2.
+The command bootstraps the five sibling repositories, builds both plugin JARs, builds the auth server, API, dashboard, and dashboard BFF images from local source, and runs Compose in the foreground. Stop and remove the stack with:
 
-Optional behavior flags:
-- `SKIP_DIGEST_REFRESH=1 ./prod` to skip automatic digest refresh.
-- `CLEAN_PLUGIN_BUILD=1 ./local` to force clean plugin build via bootstrap.
-- `LOCAL_BUILD_RETRIES=5 ./local` to retry transient local docker builds (default: 3 attempts).
-- `CRAFTALISM_RUNTIME_PROFILE=standard ./prod` to raise deployment-owned memory defaults above the small-host preset.
-- `./prod config` to render the production compose configuration after runtime guardrail validation.
-- `scripts/resolve-image-digests.sh --env-file .env --mode test --write` to resolve only digests needed by `./test`.
+```bash
+./local down
+```
 
----
+For a focused rebuild without restarting dependencies:
 
-## 1) Local development flow
+```bash
+./local hot dashboard
+./local hot api
+./local hot minecraft
+```
 
-Use local build contexts for Java/UI services and locally built Minecraft plugin jars.
+`./local hot minecraft` rebuilds the economy and market plugins, refreshes them in the persistent Minecraft volume, and recreates only the Minecraft container. Use `CLEAN_PLUGIN_BUILD=1 ./local` or `CLEAN_PLUGIN_BUILD=1 ./local hot minecraft` when Gradle metadata or dependencies changed. `LOCAL_BUILD_RETRIES` controls full-stack build/start attempts and defaults to `3`.
 
-### Build the plugins locally
+To build the plugins without starting Compose:
 
 ```bash
 scripts/build-economy-plugin.sh ../craftalism-economy
 scripts/build-market-plugin.sh ../craftalism-market
 ```
 
-For a forced clean rebuild when plugin metadata/dependencies changed:
-
-```bash
-scripts/build-economy-plugin.sh --clean ../craftalism-economy
-scripts/build-market-plugin.sh --clean ../craftalism-market
-```
-
-This produces:
+Pass `--clean` before the repository path for a clean Gradle build. The outputs are:
 
 - `.local-dev/craftalism-economy.jar`
 - `.local-dev/craftalism-market.jar`
 
-### Run local stack
-
-```bash
-export AUTH_SERVER_BUILD_CONTEXT=../craftalism-authorization-server/java
-export API_BUILD_CONTEXT=../craftalism-api/java
-export DASHBOARD_BUILD_CONTEXT=../craftalism-dashboard/react
-export ECONOMY_PLUGIN_JAR=$PWD/.local-dev/craftalism-economy.jar
-export MARKET_PLUGIN_JAR=$PWD/.local-dev/craftalism-market.jar
-export AUTH_SERVER_DOCKERFILE=Dockerfile
-export API_DOCKERFILE=Dockerfile
-export DASHBOARD_DOCKERFILE=Dockerfile
-
-
-docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
-```
-
-Notes:
-- The compose local override builds `auth-server`, `api`, and `dashboard` from local source paths.
-- Dashboard write actions go through the deployment-owned `dashboard-bff` service. Set `DASHBOARD_BFF_CLIENT_SECRET` in `.env` to the same server-side secret registered by `craftalism-authorization-server`; do not expose it to browser runtime configuration.
-- By default those local builds use app subdirectory contexts (`java` for the backend services, `react` for the dashboard) and `Dockerfile` inside each context.
-- If you prefer pointing `*_BUILD_CONTEXT` at a repo root, pair it with the matching subdirectory Dockerfile, for example `AUTH_SERVER_DOCKERFILE=java/Dockerfile`. The `./local` helper normalizes that combination back to the subdirectory context automatically.
-- Minecraft plugins use local jar mounts (`/data/plugins/craftalism-economy.jar` and `/data/plugins/craftalism-market.jar`) and do **not** use GitHub Releases in local mode.
-- If you are iterating heavily on one service, direct IDE execution is recommended while keeping dependencies (Postgres/Auth/API) in Compose.
-- For faster local loops, you can boot only shared dependencies (Postgres/Auth/API):
+For direct IDE work, start only PostgreSQL, the auth initializer, auth server, and API:
 
 ```bash
 scripts/start-local-deps.sh up
 scripts/start-local-deps.sh down
 ```
 
-### Verify dashboard writes locally
+Unlike `./local`, this helper reads Compose's `.env` values and does not apply `.env.local`; export any required container-network overrides before using it.
 
-After the local stack is running, create, update, and delete a player or balance from the dashboard at `http://localhost:8080/`.
+### Dashboard BFF
 
-Expected path:
+Dashboard mutations are routed through the deployment-owned `dashboard-bff`. It obtains scoped OAuth client-credentials tokens and forwards only its explicit route allowlist. Ordinary API reads are proxied without adding that credential; the market event and event-template administration reads use the market-admin scope.
+
+The local dashboard is available at `http://localhost:8080/`. The write path is:
 
 ```text
-browser -> dashboard /api/dashboard/... -> dashboard-bff -> auth-server /oauth2/token -> api /api/...
+browser -> dashboard /api/dashboard/... -> dashboard-bff -> auth-server /oauth2/token -> API
 ```
 
-Verification checks:
+The BFF health endpoint is internal to the Compose network at `/health`; inspect it with `docker compose ps` or container logs.
 
-- `dashboard-bff` is healthy in `docker compose ps`.
-- The browser network panel shows writes to `/api/dashboard/players` or `/api/dashboard/balances`.
-- API writes still reach canonical `/api/players` and `/api/balances` only from `dashboard-bff` with a Bearer token.
-- `DASHBOARD_BFF_CLIENT_SECRET` does not appear in browser JavaScript, runtime config, or network payloads.
+## Staging/test
 
----
+The staging workflow builds application images tagged with the normalized branch name and the deployment commit's seven-character SHA, for example `main-a1b2c3d`. It runs for pull requests and pushes targeting `main` or `feature/**`, and can also be dispatched manually. The workflow validates shell syntax, repository hygiene, Compose interpolation, builds the three application images, builds both plugins, and runs the Compose smoke flow.
 
-## 2) Staging / test flow
+When the target GHCR packages are owned by the service repositories, configure the Actions secret `GHCR_PUSH_TOKEN` with package write access and, optionally, `GHCR_USERNAME`. The workflow otherwise falls back to `GITHUB_TOKEN`.
 
-Staging uses CI-built immutable images tagged by branch + short SHA, for example:
+Run the test stack with:
 
-- `craftalism-api:main-a1b2c3d`
-- `craftalism-authorization-server:main-a1b2c3d`
-- `craftalism-dashboard:main-a1b2c3d`
+```bash
+./test
+```
 
-The workflow `.github/workflows/build-staging-images.yml` first validates deployment wiring (script syntax + compose interpolation checks) and then builds/pushes those tags on each push to `main` or `feature/**`.
+The helper:
 
-CI note:
-- When this deployment repo publishes staging images to existing GHCR packages such as `ghcr.io/henriquemichelini/craftalism-api`, the default `GITHUB_TOKEN` may not have permission to write those package namespaces because it is scoped to `craftalism-deployment`, not the service repos that own the packages.
-- Configure Actions secrets `GHCR_PUSH_TOKEN` (classic PAT or fine-grained token with package write access to the target packages) and optionally `GHCR_USERNAME`. The staging workflow uses those secrets when present and falls back to `GITHUB_TOKEN` otherwise.
+- derives missing `*_CI_TAG` and `*_GIT_SHA` values from the current deployment branch and commit;
+- builds either plugin JAR when its `.local-dev` artifact is missing;
+- refreshes the PostgreSQL and Minecraft digests in `.env` unless `SKIP_TEST_DIGEST_REFRESH=1`;
+- pulls the application CI images, falling back to the corresponding `*:local` image when available; and
+- starts the merged test Compose stack in detached mode.
 
-### Run test stack
+`./test` reads `.env`, not `.env.local`. Ensure `.env` or exported variables contain test-appropriate internal auth configuration and usable RSA configuration. To use ephemeral keys for a disposable test stack, set `RSA_ALLOW_EPHEMERAL=true` and leave `RSA_PRIVATE_KEY` and `RSA_PUBLIC_KEY` empty.
+
+Override the automatically derived tags when testing published images from another build:
 
 ```bash
 export AUTH_SERVER_CI_TAG=main-a1b2c3d
 export API_CI_TAG=main-a1b2c3d
 export DASHBOARD_CI_TAG=main-a1b2c3d
-export AUTH_SERVER_GIT_SHA=a1b2c3d
-export API_GIT_SHA=a1b2c3d
-export DASHBOARD_GIT_SHA=a1b2c3d
-export ECONOMY_GIT_SHA=a1b2c3d
-export MARKET_GIT_SHA=a1b2c3d
-export ECONOMY_PLUGIN_JAR=$PWD/.local-dev/craftalism-economy.jar
-export MARKET_PLUGIN_JAR=$PWD/.local-dev/craftalism-market.jar
-
-docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
+./test
 ```
 
-Optional pre-pull (recommended in CI to reduce cold-start time):
+Run the end-to-end smoke check after the stack is healthy. The supplied secret must match the configured Minecraft OAuth client:
 
 ```bash
-scripts/prepull-images.sh test
+MINECRAFT_CLIENT_SECRET='test-secret' scripts/smoke-test.sh
 ```
 
-Notes:
-- Test overrides replace service images with commit-tagged CI images.
-- Test still uses locally built plugin artifacts (mounted jars), not release download transport.
-- Commit metadata is attached as labels/environment values so the running commit is obvious.
+Stop the test stack with `./test down`.
 
----
+## Production
 
-## 3) Production flow
+The supported production path is the `./prod` wrapper. It validates required values, placeholder values, immutable digests, runtime memory budgets, and market rate-limit settings before changing the stack.
 
-Production uses the base compose file by default. The public edge, TLS, and
-dashboard basic auth are expected to be owned by `craftalism-infra` on the
-host, while this repo publishes only the localhost upstream ports the host
-proxy forwards to.
+Review the resolved Compose configuration first:
 
 ```bash
-scripts/prepull-images.sh production
-docker compose up -d
+./prod config
 ```
 
-Use `./prod` for the checked production path. It validates required production
-configuration, refreshes image digests unless disabled, pre-pulls images, and
-starts the selected production compose set.
-
-For a targeted application release after updating its immutable version in
-`.env`, use:
+Start or update the full production stack:
 
 ```bash
+./prod
+```
+
+By default, this resolves the configured application and base-image tags, writes their current digests to `.env`, reuses the pulled images, and starts the stack in detached mode. Use `SKIP_DIGEST_REFRESH=1 ./prod` only when `.env` already contains the intended pinned digests.
+
+After changing one released application version in `.env`, deploy only that service:
+
+```bash
+./prod deploy auth-server
+./prod deploy api
 ./prod deploy dashboard
 ```
 
-The targeted deploy resolves only the selected service digest, stops and
-removes its existing container, starts the replacement without dependencies,
-waits for it to become healthy, and fails if the active image reference does
-not match the configured release. Override the 120-second health timeout with
-`PROD_DEPLOY_WAIT_TIMEOUT` when needed.
+The targeted deploy resolves only that application's digest, replaces its container without restarting dependencies, waits up to 120 seconds for health, and verifies the active image reference. Set `PROD_DEPLOY_WAIT_TIMEOUT` to change the timeout.
 
-Production requirements:
-- Publicly expose only `80`, `443`, and `25565` at the EC2/security-group layer. Keep `9000`, `3000`, `8080`, and `25575` private.
-- Set immutable release tags in `.env` (`AUTH_SERVER_VERSION`, `API_VERSION`, `DASHBOARD_VERSION`, `ECONOMY_VERSION`, `MARKET_VERSION`).
-- Set pinned image digests in `.env` (`AUTH_SERVER_DIGEST`, `API_DIGEST`, `DASHBOARD_DIGEST`, `POSTGRES_DIGEST`, `MINECRAFT_IMAGE_DIGEST`).
-- Set the Paper market plugin runtime config in `.env` (`MARKET_API_BASE_URL`, `MARKET_API_SNAPSHOT_PATH`, and related `MARKET_API_*` settings). The deployment now seeds `/data/plugins/CraftalismMarket/config.yml` from these values before Paper starts.
-- Optional extra server jars must be Paper/Bukkit/Spigot plugins. Add them with `MINECRAFT_EXTRA_PLUGIN_URLS`; Forge, Fabric, and NeoForge mods do not run on Paper.
-- Do **not** use `latest` or unpinned image references.
-- Economy and market plugins are downloaded from GitHub Releases using `ECONOMY_VERSION` and `MARKET_VERSION`.
-- Image references are configured as `repo:tag@sha256:...` so deployments are immutable by default.
-- `craftalism-infra` owns the public edge proxy, TLS termination, and dashboard basic auth for the EC2 deployment path.
-- The optional `standalone-edge` profile in this repo now enforces dashboard basic auth in its local Caddy config when `DASHBOARD_BASIC_AUTH_USERNAME` and `DASHBOARD_BASIC_AUTH_PASSWORD_HASH` are set.
-- `./prod up` fails fast and prints missing variable names when required production configuration is not set.
-- `./prod up` and `./prod config` validate deployment-owned memory budgets so JVM heap, metaspace, reserved code cache, thread stacks, native headroom, and Minecraft heap settings fit inside each container limit.
-- API SpringDoc and Swagger UI are disabled by default in production through `API_SPRINGDOC_API_DOCS_ENABLED=false` and `API_SPRINGDOC_SWAGGER_UI_ENABLED=false`. Local development intentionally enables them in `docker-compose.local.yml`.
-- API market request pressure is bounded by deployment-owned defaults: `MARKET_QUOTE_RATE_LIMIT_MAX_REQUESTS=120`, `MARKET_EXECUTE_RATE_LIMIT_MAX_REQUESTS=30`, and `MARKET_RATE_LIMIT_WINDOW_SECONDS=60`. Set a max requests value to `0` only when intentionally disabling that API limiter.
-- See `docs/api-production-runtime-guardrails.md` for the API JVM budget, SpringDoc default, and market rate-limit tuning notes.
-
-### Small-instance guidance
-
-For `t3.small` testing, this repo now supports profile-driven runtime ceilings through `.env`:
-
-- `CRAFTALISM_RUNTIME_PROFILE=small-host` applies conservative defaults for Java, Postgres, dashboard, edge, and Minecraft.
-- `CRAFTALISM_RUNTIME_PROFILE=standard` raises those defaults for less constrained hosts without changing compose files.
-- Per-service env vars still override the selected profile when you need a one-off adjustment.
-- The Java defaults now use explicit heap, metaspace, reserved code cache, reduced thread stacks, and fail-fast OOM behavior so the container budget remains enforceable.
-
-These defaults are aimed at survival on a hobby-scale `t3.small`. If the host still thrashes or player load is non-trivial, move to `t3.medium`.
-
-## Health checks
+Other production commands:
 
 ```bash
-curl -I "https://dashboard.craftalism.com/"
-curl -f "https://auth.craftalism.com/actuator/health"
-curl -f "https://api.craftalism.com/actuator/health"
+./prod ps
+./prod down
+scripts/monitor-platform.sh
+scripts/monitor-platform.sh --watch=3
 ```
 
----
+### Production network and runtime requirements
 
-## Compose file responsibilities
+- The default auth server, API, and dashboard bindings are `127.0.0.1:9000`, `127.0.0.1:3000`, and `127.0.0.1:8080` respectively. `craftalism-infra` owns the public proxy, TLS termination, and dashboard basic auth on the normal EC2 path.
+- Expose only HTTP/HTTPS and Minecraft (`80`, `443`, and `25565`) at the EC2 security-group layer. Keep `9000`, `3000`, `8080`, and RCON `25575` private.
+- The optional `standalone-edge` profile uses this repository's `Caddyfile`. Configure `DASHBOARD_SITE_ADDRESS`, `AUTH_SITE_ADDRESS`, `API_SITE_ADDRESS`, `DASHBOARD_BASIC_AUTH_USERNAME`, a Caddy-compatible `DASHBOARD_BASIC_AUTH_PASSWORD_HASH`, and a pinned `CADDY_IMAGE` before enabling it. The included file also has an unauthenticated `localhost` dashboard site for local access, so this profile is not equivalent to the infra-managed production access-control boundary as written.
+- Economy and market plugins are downloaded from GitHub Releases. Extra URLs in `MINECRAFT_EXTRA_PLUGIN_URLS` must point to Paper/Bukkit/Spigot plugins; Forge, Fabric, and NeoForge mods do not run on Paper.
+- `minecraft-config-init` writes the market plugin's runtime configuration into the persistent Minecraft volume from the `MARKET_API_*` values before Paper starts.
+- Named PostgreSQL, Minecraft, and Caddy data volumes persist across ordinary `down` operations.
+- API SpringDoc and Swagger UI default to disabled in production and enabled by the local override.
+- Production market request defaults are `120` quote requests and `30` execute requests per `60` seconds. A max-request value of `0` disables that limiter intentionally.
 
-- `docker-compose.yml`: production-safe baseline with localhost-only upstream publishing for the infra-managed host edge, plus an optional `standalone-edge` profile.
-- `docker-compose.local.yml`: local source builds + direct local port publishing + local economy/market plugin jars.
-- `docker-compose.test.yml`: staging/test CI-tagged immutable images + direct test port publishing + local test-built economy/market plugin jars.
+`CRAFTALISM_RUNTIME_PROFILE=small-host` is the default and applies conservative limits intended for a hobby-scale `t3.small`. `CRAFTALISM_RUNTIME_PROFILE=standard` raises several service budgets for larger hosts. Per-service variables in `.env` override profile defaults, and `./prod` rejects memory configurations that do not fit their container limits. See [`docs/api-production-runtime-guardrails.md`](docs/api-production-runtime-guardrails.md) for API-specific tuning details.
+
+Enable the repository-owned edge explicitly for a standalone environment:
+
+```bash
+COMPOSE_PROFILES=standalone-edge ./prod
+```
+
+For tailnet-only local access while retaining loopback bindings, see [`docs/tailscale-serve-local.md`](docs/tailscale-serve-local.md). The helpers use Tailscale Serve, not Funnel; API and Minecraft exposure require explicit flags.
+
+## Verification
+
+Run the repository-local static checks from the repository root:
+
+```bash
+bash -n local test prod scripts/*.sh diagnostics/runtime-snapshots/snapshot.sh gather-market-config-logs.sh
+scripts/check-repository-hygiene.sh
+docker compose --env-file env.example -f docker-compose.yml config >/dev/null
+node --test dashboard-bff/server.test.js
+```
+
+The staging workflow additionally validates the local and test Compose merges and runs `scripts/smoke-test.sh` against the started test stack.
+
+Check the production upstreams directly on the deployment host:
+
+```bash
+curl -f 'http://127.0.0.1:9000/actuator/health'
+curl -f 'http://127.0.0.1:3000/actuator/health'
+curl -I 'http://127.0.0.1:8080/'
+```
 
 ## License
 
-MIT. See [`LICENSE`](./LICENSE).
+MIT. See [`LICENSE`](LICENSE).
